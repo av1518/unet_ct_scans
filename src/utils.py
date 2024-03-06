@@ -4,6 +4,7 @@ import os
 from os import listdir
 from os.path import join
 import numpy as np
+from tqdm import tqdm
 
 
 def convert_dicom_to_numpy(case_path):
@@ -32,10 +33,10 @@ def convert_dicom_to_numpy(case_path):
     """
     # list all DICOM  files in the directory
     dicom_files = [f for f in listdir(case_path) if f.endswith(".dcm")]
-    dicom_files.sort()
+    dicom_files.sort()  # Ensure files are in the correct order
 
     # read the first file to get the image shape
-    ref_metadata = pydicom.dcmread(join(case_path, dicom_files[0]))
+    ref_metadata = dcmread(join(case_path, dicom_files[0]))
     image_shape = (len(dicom_files), int(ref_metadata.Rows), int(ref_metadata.Columns))
 
     # create a 3D numpy array to store the images
@@ -43,8 +44,91 @@ def convert_dicom_to_numpy(case_path):
 
     # loop through all the DICOM files and read them into the numpy array
     for i, file in enumerate(dicom_files):
-        file_path = os.path.join(case_path, file)
+        file_path = join(case_path, file)
         metadata = dcmread(file_path)
         case_images[i, :, :] = metadata.pixel_array
+
+    return case_images
+
+
+def convert_dicom_to_numpy_2(case_path):
+    # list all DICOM files in the directory
+    dicom_files = [f for f in listdir(case_path) if f.endswith(".dcm")]
+
+    # Sort the files based on the numerical value after the hyphen
+    dicom_files.sort(key=lambda x: int(x.split("-")[-1].split(".")[0]))
+
+    # Read the first file to get the image shape
+    ref_metadata = dcmread(join(case_path, dicom_files[0]))
+    image_shape = (len(dicom_files), int(ref_metadata.Rows), int(ref_metadata.Columns))
+
+    # create a 3D numpy array to store the images
+    case_images = np.empty(image_shape, dtype=ref_metadata.pixel_array.dtype)
+
+    # loop through all the DICOM files and read them into the numpy array
+    for i, file in enumerate(dicom_files):
+        file_path = join(case_path, file)
+        metadata = dcmread(file_path)
+        case_images[i, :, :] = metadata.pixel_array
+
+    return case_images
+
+
+def load_segmentation_data(segmentation_path):
+    segmentation_arrays = {}
+
+    # List all .npz files in the directory
+    npz_files = [f for f in listdir(segmentation_path) if f.endswith(".npz")]
+    print("Loading segmentation data...")
+    for file_name in tqdm(npz_files):
+        case_name = os.path.splitext(file_name)[0]
+        npz_file_path = join(segmentation_path, file_name)
+
+        # Load the numpy array from the .npz file
+        with np.load(npz_file_path) as data:
+            # Use the 'masks' key to access the data
+            if "masks" in data:
+                segmentation_arrays[case_name] = data["masks"]
+
+            else:
+                print(f"Key 'masks' not found in {npz_file_path}")
+    print("Segmentation data loaded.")
+    return segmentation_arrays
+
+
+def convert_dicom_to_numpy_slice_location(case_path):
+    # List all DICOM files in the directory
+    dicom_files = [f for f in listdir(case_path) if f.endswith(".dcm")]
+
+    # Read SliceLocation tag for each file and store in a list
+    dicom_metadata = []
+    for file in dicom_files:
+        file_path = join(case_path, file)
+        metadata = dcmread(file_path)
+        slice_location = getattr(metadata, "SliceLocation", None)
+        # print(f"SliceLocation: {slice_location}")
+        if slice_location is not None:
+            dicom_metadata.append((file, slice_location))
+        else:
+            print(f"SliceLocation not found in {file}")
+
+    # Sort the list based on the slice location
+    # (important because masks are sorted by slice location as well)
+    dicom_metadata.sort(key=lambda x: x[1])
+
+    # Create a 3D numpy array to store the images
+    if dicom_metadata:
+        num_slices = len(dicom_metadata)
+        ref_metadata = dcmread(join(case_path, dicom_metadata[0][0]))
+        image_shape = (num_slices, int(ref_metadata.Rows), int(ref_metadata.Columns))
+        case_images = np.empty(image_shape, dtype=ref_metadata.pixel_array.dtype)
+
+        # Load the images in the sorted order
+        for i, (file, _) in enumerate(dicom_metadata):
+            file_path = join(case_path, file)
+            metadata = dcmread(file_path)
+            case_images[i, :, :] = metadata.pixel_array
+    else:
+        raise ValueError("No DICOM files with SliceLocation found.")
 
     return case_images
