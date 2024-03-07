@@ -1,4 +1,4 @@
-# %%
+# %% In this script we manually check the mask and image overlay for each case
 import matplotlib.pyplot as plt
 import pydicom
 from pydicom import dcmread
@@ -37,12 +37,18 @@ print("Images loaded.")
 segmentation_data = load_segmentation_data(seg_path)
 # %%
 # plot every slice overlayed with mask number
-for slice in range(0, 122, 1):
+
+case = "Case_006"
+for slice in range(0, 122, 10):
     fig, axs = plt.subplots(1, 2)
-    axs[0].imshow(segmentation_data["Case_006_seg"][slice], cmap="jet")
-    axs[0].imshow(case_arrays["Case_006"][slice], cmap="gray", alpha=0.5)
+    axs[0].imshow(segmentation_data[case][slice], cmap="jet")
+    axs[0].imshow(case_arrays[case][slice], cmap="gray", alpha=0.5)
     axs[0].set_title("Overlay")
 
-    axs[1].imshow(case_arrays["Case_006"][slice], cmap="gray")
-    axs[1].set_title(f"Image slice {slice} of")
+    axs[1].imshow(case_arrays[case][slice], cmap="gray")
+    axs[1].set_title(f"Image slice {slice} of {case}")
     plt.show()
+
+# %%
+plt.imshow(segmentation_data[case][42], cmap="jet")
+print(np.unique(segmentation_data[case][42]))

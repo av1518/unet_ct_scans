@@ -81,7 +81,9 @@ def load_segmentation_data(segmentation_path):
     npz_files = [f for f in listdir(segmentation_path) if f.endswith(".npz")]
     print("Loading segmentation data...")
     for file_name in tqdm(npz_files):
-        case_name = os.path.splitext(file_name)[0]
+        case_name = os.path.splitext(file_name)[0].split("_seg")[
+            0
+        ]  # Remove the "_seg" so that the case name matches the image data
         npz_file_path = join(segmentation_path, file_name)
 
         # Load the numpy array from the .npz file
