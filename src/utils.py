@@ -5,6 +5,8 @@ from os import listdir
 from os.path import join
 import numpy as np
 from tqdm import tqdm
+import torch
+from torch.utils.data import Dataset
 
 
 def convert_dicom_to_numpy(case_path):
@@ -134,3 +136,22 @@ def convert_dicom_to_numpy_slice_location(case_path):
         raise ValueError("No DICOM files with SliceLocation found.")
 
     return case_images
+
+
+class CustomDataset(Dataset):
+    def __init__(self, paired_data):
+        self.paired_data = paired_data
+
+    def __len__(self):
+        return len(self.paired_data)
+
+    def __getitem__(self, idx):
+        image, mask = self.paired_data[idx]
+
+        # Convert numpy arrays to PyTorch tensors
+        image_tensor = torch.from_numpy(image.astype(np.float32)).unsqueeze(
+            0
+        )  # Adding channel dimension
+        mask_tensor = torch.from_numpy(mask.astype(np.float32)).unsqueeze(0)
+
+        return image_tensor, mask_tensor
