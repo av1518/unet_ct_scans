@@ -12,6 +12,9 @@ from utils import (
     convert_dicom_to_numpy_2,
     convert_dicom_to_numpy_slice_location,
 )
+from models import SimpleUNet
+
+# %%
 
 current_directory = os.path.dirname(__file__)
 parent_directory = os.path.dirname(current_directory)
@@ -52,3 +55,11 @@ for slice in range(0, 122, 10):
 # %%
 plt.imshow(segmentation_data[case][42], cmap="jet")
 print(np.unique(segmentation_data[case][42]))
+
+# %%
+model = SimpleUNet(in_channels=1, out_channels=1)
+
+# print parameters
+print("Model's state_dict:")
+for param_tensor in model.state_dict():
+    print(param_tensor, "\t", model.state_dict()[param_tensor].size())
