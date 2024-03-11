@@ -138,7 +138,46 @@ def convert_dicom_to_numpy_slice_location(case_path):
     return case_images
 
 
+def create_paired_data(cases, case_arrays, segmentation_data):
+    """
+    Creates a list of paired data, where each pair consists of an image and its corresponding segmentation mask.
+
+    This function iterates through the given cases, retrieves corresponding image and segmentation arrays,
+    and pairs individual slices from these arrays. The pairing is done based on the index of the slices,
+    ensuring that each image slice is paired with its corresponding segmentation mask slice.
+
+    Args:
+        cases (list): A list of case identifiers. Each identifier corresponds to a key in case_arrays and segmentation_data.
+        case_arrays (dict): A dictionary where keys are case identifiers and values are image arrays (as NumPy arrays).
+        segmentation_data (dict): A dictionary where keys are case identifiers and values are segmentation mask arrays (as NumPy arrays).
+
+    Returns:
+        list of tuples: A list where each tuple contains an image slice and its corresponding segmentation mask slice, both as NumPy arrays.
+    """
+    paired_data = []
+    for case in cases:
+        image_array = case_arrays[case]
+        segmentation_array = segmentation_data[case]
+        for i in range(image_array.shape[0]):
+            paired_data.append((image_array[i], segmentation_array[i]))
+    return paired_data
+
+
 class CustomDataset(Dataset):
+    """
+    A custom Dataset class for loading paired medical imaging data (CT scans and corresponding segmentation masks).
+
+    This class inherits from the PyTorch Dataset class and is used for easier data loading and manipulation in the training pipeline.
+
+    Attributes:
+        paired_data (list of tuples): A list where each tuple contains an image (as a NumPy array) and its corresponding segmentation mask.
+
+    Methods:
+        __init__(self, paired_data): Initializes the dataset with paired data.
+        __len__(self): Returns the length of the dataset.
+        __getitem__(self, idx): Retrieves a processed image-mask pair from the dataset by index.
+    """
+
     def __init__(self, paired_data):
         self.paired_data = paired_data
 

@@ -25,7 +25,6 @@ def train_model(model, train_loader, test_loader, epochs, learning_rate):
     test_accuracies = []
 
     for epoch in range(epochs):
-        wandb.log({"epoch": epoch, "loss": epoch_loss, "accuracy": epoch_accuracy})
         model.train()
         running_loss = 0.0
         accuracy_metric.reset()
@@ -67,5 +66,6 @@ def train_model(model, train_loader, test_loader, epochs, learning_rate):
         epoch_test_accuracy = accuracy_metric.compute()
         test_accuracies.append(epoch_test_accuracy.item())
         print(f", Test Accuracy: {epoch_test_accuracy:.4f}")
+        wandb.log({"epoch": epoch, "loss": epoch_loss, "accuracy": epoch_accuracy})
 
     return losses, train_accuracies, test_accuracies
