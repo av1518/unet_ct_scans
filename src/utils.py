@@ -7,6 +7,7 @@ import numpy as np
 from tqdm import tqdm
 import torch
 from torch.utils.data import Dataset
+import json
 
 
 def convert_dicom_to_numpy(case_path):
@@ -161,6 +162,25 @@ def create_paired_data(cases, case_arrays, segmentation_data):
         for i in range(image_array.shape[0]):
             paired_data.append((image_array[i], segmentation_array[i]))
     return paired_data
+
+
+def save_metrics(metrics, directory, timestamp):
+    """
+    Saves the provided metrics as a JSON file in the specified directory.
+
+    Args:
+        metrics (dict): A dictionary containing the metrics to save.
+                        Expected to have keys like 'losses', 'train_accuracies', and 'test_accuracies'.
+        directory (str): Path to the directory where the JSON file will be saved.
+        timestamp (str): Timestamp to append to the filename for uniqueness.
+    """
+    metrics_filename = f"metrics_{timestamp}.json"
+    metrics_path = os.path.join(directory, metrics_filename)
+
+    with open(metrics_path, "w") as f:
+        json.dump(metrics, f)
+
+    print(f"Metrics saved to {metrics_path}")
 
 
 class CustomDataset(Dataset):

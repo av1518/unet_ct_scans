@@ -13,6 +13,8 @@ from utils import (
 from models import SimpleUNet
 from train import train_model
 import random
+import datetime
+import json
 
 # %% Load the data
 current_directory = os.path.dirname(__file__)
@@ -63,52 +65,10 @@ train_loader = DataLoader(train_dataset, batch_size=3, shuffle=True)
 test_loader = DataLoader(test_dataset, batch_size=3, shuffle=False)
 
 model = SimpleUNet(in_channels=1, out_channels=1)
+
+# Training -------------------------------------------------------
 losses, train_accuracies, test_accuracies = train_model(
-    model, train_loader, test_loader, epochs=2, learning_rate=0.1
-)
-
-# %%
-# Creating a list of paired data in the format (image, segmentation) and putting them all in this list to create a dataset
-paired_data = []
-for case in case_folders:
-    image_array = case_arrays[case]
-    segmentation_array = seg_arrays[case]
-
-    # Check if the case exists in both image and segmentation data
-    if case in seg_arrays:
-        for i in range(image_array.shape[0]):  # Loop through each slice
-            paired_data.append((image_array[i], segmentation_array[i]))
-
-
-full_dataset = CustomDataset(paired_data)
-# %%
-# Define random seed for reproducibility
-torch.manual_seed(25101999)
-
-# Calculate sizes for train and test sets
-train_size = int(2 / 3 * len(full_dataset))
-test_size = len(full_dataset) - train_size
-
-train_dataset, test_dataset = random_split(
-    full_dataset,
-    [train_size, test_size],
-    generator=torch.Generator().manual_seed(25101999),
-)
-
-# Create DataLoaders
-train_loader = DataLoader(
-    train_dataset, batch_size=3, shuffle=True
-)  # adjust batch_size as needed
-test_loader = DataLoader(test_dataset, batch_size=3, shuffle=False)
-
-model = SimpleUNet(
-    in_channels=1, out_channels=1
-)  # 1 input channel (grayscale), 1 output channel (binary mask)
-
-# %%
-# Train the model
-losses, train_accuracies, test_accuracies = train_model(
-    model, train_loader, test_loader, epochs=1, learning_rate=0.1
+    model, train_loader, test_loader, epochs=10, learning_rate=0.1
 )
 
 # %%
@@ -133,6 +93,39 @@ plt.legend()
 plt.show()
 
 # %%
-# Save the model
+lr = 0.1  # Learning rate
+epochs = 2  # Number of epochs
+batch_size = 3  # Batch size
+timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+final_train_accuracy = train_accuracies[-1]
+final_test_accuracy = test_accuracies[-1]
 
-torch.save(model.state_dict(), "unet_model.pth")
+model_filename = f"unet_lr{lr}_epochs{epochs}_bs{batch_size}_trainacc{final_train_accuracy:.2f}_testacc{final_test_accuracy:.2f}_{timestamp}.pth"
+
+# Saving the model in the 'saved_models' directory
+saved_models_dir = os.path.join(parent_directory, "saved_models")
+os.makedirs(saved_models_dir, exist_ok=True)  # Create the directory if it doesn't exist
+
+model_save_path = os.path.join(saved_models_dir, model_filename)
+torch.save(model.state_dict(), model_save_path)
+
+print(f"Model saved to {model_save_path}")
+
+# %%
+# Convert the metrics to a dictionary
+metrics = {
+    "losses": losses,
+    "train_accuracies": train_accuracies,
+    "test_accuracies": test_accuracies,
+}
+
+# Save the metrics to a JSON file
+metrics_filename = (
+    f"metrics_{timestamp}.json"  # Use the same timestamp as for your model
+)
+metrics_path = os.path.join(saved_models_dir, metrics_filename)
+
+with open(metrics_path, "w") as f:
+    json.dump(metrics, f)
+
+print(f"Metrics saved to {metrics_path}")
