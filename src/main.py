@@ -1,30 +1,23 @@
 # %%
+import torch
+from torch.utils.data import DataLoader, random_split
+import torch
 import matplotlib.pyplot as plt
-import pydicom
-from pydicom import dcmread
 import os
-from os import listdir
-from os.path import isfile, join
-import numpy as np
 from utils import (
-    convert_dicom_to_numpy,
     load_segmentation_data,
-    convert_dicom_to_numpy_2,
     convert_dicom_to_numpy_slice_location,
+    CustomDataset,
 )
+from models import SimpleUNet
+from train import train_model
 
-# %%
-# load one dicom file
-# load path that is one level above the current directory
-
+# %% Load the data
 current_directory = os.path.dirname(__file__)
 parent_directory = os.path.dirname(current_directory)
-
 image_path = os.path.join(parent_directory, "Dataset\Images")
 seg_path = os.path.join(parent_directory, "Dataset\Segmentations")
 
-
-# %%
 case_folders = [
     d for d in os.listdir(image_path) if os.path.isdir(os.path.join(image_path, d))
 ]
@@ -33,80 +26,79 @@ case_folders = [
 case_arrays = {}
 
 # Loop through each case and convert to numpy array
+print("Loading images...")
 for case in case_folders:
     case_path = os.path.join(image_path, case)
-    case_arrays[case] = convert_dicom_to_numpy_2(case_path)
+    case_arrays[case] = convert_dicom_to_numpy_slice_location(case_path)
     print(f"Converted {case} to numpy array with shape {case_arrays[case].shape}")
-
-# %%
-# Display the first slice of the first case
-plt.imshow(case_arrays["Case_010"][85], cmap="gray")
-
-# %%
-
-
-npz_filename = (
-    "Case_000_seg.npz"  # Replace with the name of an actual .npz file in the directory
-)
-npz_file_path = os.path.join(seg_path, npz_filename)
-
-try:
-    with np.load(npz_file_path) as data:
-        print("Arrays in the .npz file:", list(data.keys()))
-except Exception as e:
-    print(f"An error occurred: {e}")
-# %%
+print("Images loaded.")
 
 segmentation_data = load_segmentation_data(seg_path)
 # %%
-print(segmentation_data.keys())
-# plot slice 42 of the first case
-fig, axs = plt.subplots(1, 2)
-
-slice = 50
-
-axs[0].imshow(segmentation_data["Case_010_seg"][-slice, :, :], cmap="jet")
-axs[0].set_title("Segmentation")
-
-axs[1].imshow(case_arrays["Case_010"][slice, :, :], cmap="gray")
-axs[1].set_title("Image")
-
-plt.show()
-
-# %%
-# print slice number of each case
+# Creating a list of paired data in the format (image, segmentation) and putting them all in this list to create a dataset
+paired_data = []
 for case in case_folders:
-    print(f"{case}: {case_arrays[case].shape[0]} slices")
+    image_array = case_arrays[case]
+    segmentation_array = segmentation_data[case]
 
-# print slice number of each case in the segmentation data
-for case in segmentation_data:
-    print(f"{case}_seg: {segmentation_data[case].shape[0]} slices")
+    # Check if the case exists in both image and segmentation data
+    if case in segmentation_data:
+        for i in range(image_array.shape[0]):  # Loop through each slice
+            paired_data.append((image_array[i], segmentation_array[i]))
 
-# overlay the segmentation on the image
+
+full_dataset = CustomDataset(paired_data)
 # %%
+# Define random seed for reproducibility
+torch.manual_seed(25101999)
 
+# Calculate sizes for train and test sets
+train_size = int(2 / 3 * len(full_dataset))
+test_size = len(full_dataset) - train_size
 
-# plot every slice overlayed with mask number
-for slice in range(0, 122, 1):
-    fig, axs = plt.subplots(1, 2)
-    axs[0].imshow(segmentation_data["Case_005_seg"][-slice], cmap="jet")
-    axs[0].imshow(case_arrays["Case_005"][slice - 1], cmap="gray", alpha=0.5)
-    axs[0].set_title("Overlay")
+train_dataset, test_dataset = random_split(
+    full_dataset,
+    [train_size, test_size],
+    generator=torch.Generator().manual_seed(25101999),
+)
 
-    axs[1].imshow(case_arrays["Case_005"][slice - 1], cmap="gray")
-    axs[1].set_title(f"Image slice {slice} of")
-    plt.show()
+# Create DataLoaders
+train_loader = DataLoader(
+    train_dataset, batch_size=3, shuffle=True
+)  # adjust batch_size as needed
+test_loader = DataLoader(test_dataset, batch_size=3, shuffle=False)
+
+model = SimpleUNet(
+    in_channels=1, out_channels=1
+)  # 1 input channel (grayscale), 1 output channel (binary mask)
+
+# Train the model
+losses, train_accuracies, test_accuracies = train_model(
+    model, train_loader, test_loader, epochs=1, learning_rate=0.1
+)
 
 # %%
-fig, axs = plt.subplots(1, 2)
+# Plotting
+plt.figure(figsize=(12, 5))
 
-case = "Case_007"
+plt.subplot(1, 2, 1)
+plt.plot(losses, label="Loss")
+plt.title("Training Loss")
+plt.xlabel("Epoch")
+plt.ylabel("Loss")
+plt.legend()
 
-axs[0].imshow(segmentation_data["Case_007_seg"][-slice, :, :], cmap="jet")
-axs[0].imshow(case_arrays[case][slice, :, :], cmap="gray", alpha=0.5)
-axs[0].set_title("Overlay")
-
-axs[1].imshow(case_arrays[case][slice, :, :], cmap="gray")
-axs[1].set_title(f"Image slice {slice} of Case_007")
+plt.subplot(1, 2, 2)
+plt.plot(train_accuracies, label="Train Accuracy", color="orange")
+plt.plot(test_accuracies, label="Test Accuracy", color="green")
+plt.title("Training Accuracy")
+plt.xlabel("Epoch")
+plt.ylabel("Accuracy")
+plt.legend()
 
 plt.show()
+
+# %%
+# Save the model
+
+torch.save(model.state_dict(), "unet_model.pth")
