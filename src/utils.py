@@ -166,11 +166,12 @@ def create_paired_data(cases, case_arrays, segmentation_data):
 
 def save_metrics(metrics, directory, timestamp):
     """
-    Saves the provided metrics as a JSON file in the specified directory.
+    Saves the provided metrics, including train and test cases, as a JSON file in the specified directory.
 
     Args:
         metrics (dict): A dictionary containing the metrics to save.
-                        Expected to have keys like 'losses', 'train_accuracies', and 'test_accuracies'.
+                        Expected to have keys like 'losses', 'train_accuracies', 'test_accuracies',
+                        'train_cases', and 'test_cases'.
         directory (str): Path to the directory where the JSON file will be saved.
         timestamp (str): Timestamp to append to the filename for uniqueness.
     """
@@ -178,8 +179,7 @@ def save_metrics(metrics, directory, timestamp):
     metrics_path = os.path.join(directory, metrics_filename)
 
     with open(metrics_path, "w") as f:
-        json.dump(metrics, f)
-
+        json.dump(metrics, f, indent=4)
     print(f"Metrics saved to {metrics_path}")
 
 

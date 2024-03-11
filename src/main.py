@@ -9,6 +9,7 @@ from utils import (
     convert_dicom_to_numpy_slice_location,
     CustomDataset,
     create_paired_data,
+    save_metrics,
 )
 from models import SimpleUNet
 from train import train_model
@@ -117,12 +118,15 @@ metrics = {
     "losses": losses,
     "train_accuracies": train_accuracies,
     "test_accuracies": test_accuracies,
+    "train_cases": train_cases,
+    "test_cases": test_cases,
 }
 
+
+save_metrics(metrics, saved_models_dir, timestamp)
+
 # Save the metrics to a JSON file
-metrics_filename = (
-    f"metrics_{timestamp}.json"  # Use the same timestamp as for your model
-)
+metrics_filename = f"metrics_{timestamp}.json"
 metrics_path = os.path.join(saved_models_dir, metrics_filename)
 
 with open(metrics_path, "w") as f:
