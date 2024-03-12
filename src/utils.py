@@ -10,71 +10,71 @@ from torch.utils.data import Dataset
 import json
 
 
-def convert_dicom_to_numpy(case_path):
-    """
-    Convert a series of DICOM files in a given directory into a 3D NumPy array.
+# def convert_dicom_to_numpy(case_path):
+#     """
+#     Convert a series of DICOM files in a given directory into a 3D NumPy array.
 
-    This function reads all DICOM (.dcm) files located in the specified directory,
-    sorts them, and stacks their pixel data into a 3D NumPy array. The DICOM files
-    should represent slices of a single scan, and they are sorted alphabetically
-    to maintain the correct sequence.
+#     This function reads all DICOM (.dcm) files located in the specified directory,
+#     sorts them, and stacks their pixel data into a 3D NumPy array. The DICOM files
+#     should represent slices of a single scan, and they are sorted alphabetically
+#     to maintain the correct sequence.
 
-    @param case_path: The path to the directory containing DICOM files. All files
-                      in this directory with a .dcm extension are processed.
-    @return: A 3D NumPy array containing the pixel data from the DICOM files.
-             The array's shape is (number_of_slices, rows, columns), where
-             number_of_slices is the number of DICOM files, and rows and columns
-             are the dimensions of the DICOM images.
-    @raise FileNotFoundError: If the specified directory does not exist or is
-                              inaccessible.
-    @raise ValueError: If there are no .dcm files in the given directory.
+#     @param case_path: The path to the directory containing DICOM files. All files
+#                       in this directory with a .dcm extension are processed.
+#     @return: A 3D NumPy array containing the pixel data from the DICOM files.
+#              The array's shape is (number_of_slices, rows, columns), where
+#              number_of_slices is the number of DICOM files, and rows and columns
+#              are the dimensions of the DICOM images.
+#     @raise FileNotFoundError: If the specified directory does not exist or is
+#                               inaccessible.
+#     @raise ValueError: If there are no .dcm files in the given directory.
 
-    Example usage:
-    ```
-    numpy_array = convert_dicom_to_numpy('/path/to/dicom/directory')
-    ```
-    """
-    # list all DICOM  files in the directory
-    dicom_files = [f for f in listdir(case_path) if f.endswith(".dcm")]
-    dicom_files.sort()  # Ensure files are in the correct order
+#     Example usage:
+#     ```
+#     numpy_array = convert_dicom_to_numpy('/path/to/dicom/directory')
+#     ```
+#     """
+#     # list all DICOM  files in the directory
+#     dicom_files = [f for f in listdir(case_path) if f.endswith(".dcm")]
+#     dicom_files.sort()  # Ensure files are in the correct order
 
-    # read the first file to get the image shape
-    ref_metadata = dcmread(join(case_path, dicom_files[0]))
-    image_shape = (len(dicom_files), int(ref_metadata.Rows), int(ref_metadata.Columns))
+#     # read the first file to get the image shape
+#     ref_metadata = dcmread(join(case_path, dicom_files[0]))
+#     image_shape = (len(dicom_files), int(ref_metadata.Rows), int(ref_metadata.Columns))
 
-    # create a 3D numpy array to store the images
-    case_images = np.empty(image_shape, dtype=ref_metadata.pixel_array.dtype)
+#     # create a 3D numpy array to store the images
+#     case_images = np.empty(image_shape, dtype=ref_metadata.pixel_array.dtype)
 
-    # loop through all the DICOM files and read them into the numpy array
-    for i, file in enumerate(dicom_files):
-        file_path = join(case_path, file)
-        metadata = dcmread(file_path)
-        case_images[i, :, :] = metadata.pixel_array
+#     # loop through all the DICOM files and read them into the numpy array
+#     for i, file in enumerate(dicom_files):
+#         file_path = join(case_path, file)
+#         metadata = dcmread(file_path)
+#         case_images[i, :, :] = metadata.pixel_array
 
-    return case_images
+#     return case_images
 
 
-def convert_dicom_to_numpy_2(case_path):
-    # list all DICOM files in the directory
-    dicom_files = [f for f in listdir(case_path) if f.endswith(".dcm")]
+# def convert_dicom_to_numpy_2(case_path):
+#     # list all DICOM files in the directory
+#     dicom_files = [f for f in listdir(case_path) if f.endswith(".dcm")]
 
-    # Sort the files based on the numerical value after the hyphen
-    dicom_files.sort(key=lambda x: int(x.split("-")[-1].split(".")[0]))
+#     # Sort the files based on the numerical value after the hyphen
+#     dicom_files.sort(key=lambda x: int(x.split("-")[-1].split(".")[0]))
 
-    # Read the first file to get the image shape
-    ref_metadata = dcmread(join(case_path, dicom_files[0]))
-    image_shape = (len(dicom_files), int(ref_metadata.Rows), int(ref_metadata.Columns))
+#     # Read the first file to get the image shape
+#     ref_metadata = dcmread(join(case_path, dicom_files[0]))
+#     image_shape = (len(dicom_files), int(ref_metadata.Rows), int(ref_metadata.Columns))
 
-    # create a 3D numpy array to store the images
-    case_images = np.empty(image_shape, dtype=ref_metadata.pixel_array.dtype)
+#     # create a 3D numpy array to store the images
+#     case_images = np.empty(image_shape, dtype=ref_metadata.pixel_array.dtype)
 
-    # loop through all the DICOM files and read them into the numpy array
-    for i, file in enumerate(dicom_files):
-        file_path = join(case_path, file)
-        metadata = dcmread(file_path)
-        case_images[i, :, :] = metadata.pixel_array
+#     # loop through all the DICOM files and read them into the numpy array
+#     for i, file in enumerate(dicom_files):
+#         file_path = join(case_path, file)
+#         metadata = dcmread(file_path)
+#         case_images[i, :, :] = metadata.pixel_array
 
-    return case_images
+#     return case_images
 
 
 def load_image_data(image_path):
@@ -200,6 +200,37 @@ def save_metrics(metrics, directory, timestamp):
     with open(metrics_path, "w") as f:
         json.dump(metrics, f, indent=4)
     print(f"Metrics saved to {metrics_path}")
+
+
+def predict_segmentation(model, image_array, device, threshold=0.5):
+    model.to(device)
+    # Add dimensions to match the model input shape [batch_size, channels, height, width]
+    image_tensor = (
+        torch.from_numpy(image_array.astype(np.float32))
+        .unsqueeze(0)
+        .unsqueeze(0)
+        .to(device)
+    )
+    with torch.no_grad():
+        output = model(image_tensor)
+    predicted = torch.sigmoid(output) > threshold
+    return predicted.squeeze(0).squeeze(0).cpu()
+
+
+def generate_seg_preds(model, case_arrays, case_names, device, threshold=0.5):
+    seg_preds = {}
+    model.eval()
+
+    print("Generating segmentation predictions...")
+    for case in tqdm(case_names):
+        images = case_arrays[case]
+        predictions = [
+            predict_segmentation(model, image, device, threshold) for image in images
+        ]
+        seg_preds[case] = predictions
+    print("Segmentation predictions generated.")
+
+    return seg_preds
 
 
 class CustomDataset(Dataset):
