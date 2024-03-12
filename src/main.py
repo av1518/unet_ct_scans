@@ -42,6 +42,7 @@ num_train_cases = int(2 / 3 * len(case_folders))
 train_cases = case_folders[:num_train_cases]
 test_cases = case_folders[num_train_cases:]
 
+# Create paired data
 train_paired_data = create_paired_data(train_cases, case_arrays, seg_arrays)
 test_paired_data = create_paired_data(test_cases, case_arrays, seg_arrays)
 
