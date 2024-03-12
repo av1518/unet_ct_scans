@@ -8,6 +8,7 @@ from tqdm import tqdm
 import torch
 from torch.utils.data import Dataset
 import json
+from torchmetrics.classification import BinaryAccuracy
 
 
 # def convert_dicom_to_numpy(case_path):
@@ -231,6 +232,66 @@ def generate_seg_preds(model, case_arrays, case_names, device, threshold=0.5):
     print("Segmentation predictions generated.")
 
     return seg_preds
+
+
+def calculate_pred_accuracy(seg_preds, seg_true, case_names):
+    seg_acc = {}
+
+    print(
+        "Calculating segmentation prediction binary accuracies compared to ground truth..."
+    )
+    for case in tqdm(case_names):
+        pred_masks = seg_preds[case]
+        true_masks = seg_true[case]
+
+        case_accuracies = []
+
+        for pred_mask, true_mask in zip(pred_masks, true_masks):
+            # Ensure both tensors are on the same device and of the same type
+            pred_mask = pred_mask.to(dtype=torch.float32)
+            true_mask = torch.Tensor(true_mask).to(dtype=torch.float32)
+
+            # Calculate accuracy
+            metric = BinaryAccuracy()
+            metric.update(pred_mask, true_mask)
+            accuracy = metric.compute().item()
+            case_accuracies.append(accuracy)
+
+        seg_acc[case] = case_accuracies
+    print("Segmentation prediction accuracies calculated.")
+
+    return seg_acc
+
+
+def dice_coeff(seg_pred, seg_true, smooth=1):
+    pred = seg_pred.view(-1).float()
+    true = seg_true.view(-1).float()
+
+    intersection = (pred * true).sum()
+    dice = (2.0 * intersection + smooth) / (pred.sum() + true.sum() + smooth)
+    return dice
+
+
+def calculate_dice_similarity(seg_preds, seg_true, case_names):
+    seg_dice = {}
+
+    print("Calculating Dice Similarity Coefficients for segmentation predictions...")
+    for case in tqdm(case_names):
+        pred_masks = seg_preds[case]
+        true_masks = seg_true[case]
+
+        case_dice_scores = []
+
+        for pred_mask, true_mask in zip(pred_masks, true_masks):
+            pred_mask = pred_mask.to(dtype=torch.float32)
+            true_mask = torch.Tensor(true_mask).to(dtype=torch.float32)
+
+            dice_score = dice_coeff(pred_mask, true_mask)
+            case_dice_scores.append(dice_score.item())
+
+        seg_dice[case] = case_dice_scores
+
+    print("Dice Similarity Coefficients calculated.")
 
 
 class CustomDataset(Dataset):
