@@ -6,10 +6,10 @@ import matplotlib.pyplot as plt
 import os
 from utils import (
     load_segmentation_data,
-    convert_dicom_to_numpy_slice_location,
     CustomDataset,
     create_paired_data,
     save_metrics,
+    load_image_data,
 )
 from models import SimpleUNet
 from train import train_model
@@ -17,27 +17,14 @@ import random
 import datetime
 import json
 
-# %% Load the data
+# %%
 current_directory = os.path.dirname(__file__)
 parent_directory = os.path.dirname(current_directory)
 image_path = os.path.join(parent_directory, "Dataset\Images")
 seg_path = os.path.join(parent_directory, "Dataset\Segmentations")
 
-case_folders = [
-    d for d in os.listdir(image_path) if os.path.isdir(os.path.join(image_path, d))
-]
-
-# Dictionary to store numpy arrays for each case
-case_arrays = {}
-
-# Loop through each case and convert to numpy array
-print("Loading images...")
-for case in case_folders:
-    case_path = os.path.join(image_path, case)
-    case_arrays[case] = convert_dicom_to_numpy_slice_location(case_path)
-    print(f"Converted {case} to numpy array with shape {case_arrays[case].shape}")
-print("Images loaded.")
-
+# Load the data
+case_arrays = load_image_data(image_path)
 seg_arrays = load_segmentation_data(seg_path)
 
 # %% Train-test split
@@ -67,6 +54,7 @@ test_loader = DataLoader(test_dataset, batch_size=3, shuffle=False)
 
 model = SimpleUNet(in_channels=1, out_channels=1)
 
+# %%
 # Training -------------------------------------------------------
 losses, train_accuracies, test_accuracies = train_model(
     model, train_loader, test_loader, epochs=10, learning_rate=0.1

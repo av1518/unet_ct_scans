@@ -77,6 +77,25 @@ def convert_dicom_to_numpy_2(case_path):
     return case_images
 
 
+def load_image_data(image_path):
+    case_folders = [
+        d for d in os.listdir(image_path) if os.path.isdir(os.path.join(image_path, d))
+    ]
+
+    # Dictionary to store numpy arrays for each case
+    case_arrays = {}
+
+    # Loop through each case and convert to numpy array
+    print("Loading images...")
+    for case in tqdm(case_folders):
+        case_path = os.path.join(image_path, case)
+        case_arrays[case] = convert_dicom_to_numpy_slice_location(case_path)
+        # print(f"Converted {case} to numpy array with shape {case_arrays[case].shape}")
+    print("Images loaded.")
+
+    return case_arrays
+
+
 def load_segmentation_data(segmentation_path):
     segmentation_arrays = {}
 
