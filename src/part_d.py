@@ -55,7 +55,7 @@ seg_preds = generate_seg_preds(model, case_arrays, case_names, device, threshold
 seg_acc = calculate_pred_accuracy(seg_preds, seg_arrays, case_names)
 # %%
 seg_dice = calculate_dice_similarity(
-    seg_preds, seg_arrays, case_names, pred_threshold=1000
+    seg_preds, seg_arrays, case_names, pred_threshold=0.005 * 512 * 512
 )
 
 # %% plot the accuracy and dice similarity
@@ -122,8 +122,8 @@ def visualize_segmentation(case, slice_num, case_arrays, seg_true, seg_preds):
 
 
 # Visualize the segmentation for case_000
-case = "Case_001"
-slice_num = 130
+case = "Case_000"
+slice_num = 150
 visualize_segmentation(case, slice_num, case_arrays, seg_arrays, seg_preds)
 
 
