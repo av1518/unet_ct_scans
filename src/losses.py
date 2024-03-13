@@ -10,10 +10,10 @@ class CombinedLoss(nn.Module):
 
     def forward(self, y_pred, y_true):
         bce = self.bce_loss(y_pred, y_true)
-        dice = soft_dice_loss(
+        dice_loss = soft_dice_loss(
             y_true, torch.sigmoid(y_pred)
         )  # Apply sigmoid before calculating Dice loss
-        return self.bce_weight * bce + (1 - self.bce_weight) * dice
+        return self.bce_weight * bce + (1 - self.bce_weight) * dice_loss
 
 
 def soft_dice_loss(y_true, y_pred, smooth=1):

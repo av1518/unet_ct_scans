@@ -11,73 +11,6 @@ import json
 from torchmetrics.classification import BinaryAccuracy
 
 
-# def convert_dicom_to_numpy(case_path):
-#     """
-#     Convert a series of DICOM files in a given directory into a 3D NumPy array.
-
-#     This function reads all DICOM (.dcm) files located in the specified directory,
-#     sorts them, and stacks their pixel data into a 3D NumPy array. The DICOM files
-#     should represent slices of a single scan, and they are sorted alphabetically
-#     to maintain the correct sequence.
-
-#     @param case_path: The path to the directory containing DICOM files. All files
-#                       in this directory with a .dcm extension are processed.
-#     @return: A 3D NumPy array containing the pixel data from the DICOM files.
-#              The array's shape is (number_of_slices, rows, columns), where
-#              number_of_slices is the number of DICOM files, and rows and columns
-#              are the dimensions of the DICOM images.
-#     @raise FileNotFoundError: If the specified directory does not exist or is
-#                               inaccessible.
-#     @raise ValueError: If there are no .dcm files in the given directory.
-
-#     Example usage:
-#     ```
-#     numpy_array = convert_dicom_to_numpy('/path/to/dicom/directory')
-#     ```
-#     """
-#     # list all DICOM  files in the directory
-#     dicom_files = [f for f in listdir(case_path) if f.endswith(".dcm")]
-#     dicom_files.sort()  # Ensure files are in the correct order
-
-#     # read the first file to get the image shape
-#     ref_metadata = dcmread(join(case_path, dicom_files[0]))
-#     image_shape = (len(dicom_files), int(ref_metadata.Rows), int(ref_metadata.Columns))
-
-#     # create a 3D numpy array to store the images
-#     case_images = np.empty(image_shape, dtype=ref_metadata.pixel_array.dtype)
-
-#     # loop through all the DICOM files and read them into the numpy array
-#     for i, file in enumerate(dicom_files):
-#         file_path = join(case_path, file)
-#         metadata = dcmread(file_path)
-#         case_images[i, :, :] = metadata.pixel_array
-
-#     return case_images
-
-
-# def convert_dicom_to_numpy_2(case_path):
-#     # list all DICOM files in the directory
-#     dicom_files = [f for f in listdir(case_path) if f.endswith(".dcm")]
-
-#     # Sort the files based on the numerical value after the hyphen
-#     dicom_files.sort(key=lambda x: int(x.split("-")[-1].split(".")[0]))
-
-#     # Read the first file to get the image shape
-#     ref_metadata = dcmread(join(case_path, dicom_files[0]))
-#     image_shape = (len(dicom_files), int(ref_metadata.Rows), int(ref_metadata.Columns))
-
-#     # create a 3D numpy array to store the images
-#     case_images = np.empty(image_shape, dtype=ref_metadata.pixel_array.dtype)
-
-#     # loop through all the DICOM files and read them into the numpy array
-#     for i, file in enumerate(dicom_files):
-#         file_path = join(case_path, file)
-#         metadata = dcmread(file_path)
-#         case_images[i, :, :] = metadata.pixel_array
-
-#     return case_images
-
-
 def load_image_data(image_path):
     case_folders = [
         d for d in os.listdir(image_path) if os.path.isdir(os.path.join(image_path, d))
@@ -263,16 +196,32 @@ def calculate_pred_accuracy(seg_preds, seg_true, case_names):
     return seg_acc
 
 
-def dice_coeff(seg_pred, seg_true, smooth=1):
+# def dice_coeff(seg_pred, seg_true, smooth=1):
+#     pred = seg_pred.view(-1).float()
+#     true = seg_true.view(-1).float()
+
+#     if pred.sum() == 0 and true.sum() == 0:
+#         return torch.tensor(1.0)  # Perfect match for cases with no segmentation
+
+#     intersection = (pred * true).sum()
+#     dice = (2.0 * intersection + smooth) / (pred.sum() + true.sum() + smooth)
+#     return dice
+
+
+def dice_coeff(seg_pred, seg_true, smooth=1, threshold=10):
     pred = seg_pred.view(-1).float()
     true = seg_true.view(-1).float()
+
+    # Consider prediction as effectively empty if below threshold
+    if pred.sum() < threshold and true.sum() == 0:
+        return torch.tensor(1.0)
 
     intersection = (pred * true).sum()
     dice = (2.0 * intersection + smooth) / (pred.sum() + true.sum() + smooth)
     return dice
 
 
-def calculate_dice_similarity(seg_preds, seg_true, case_names):
+def calculate_dice_similarity(seg_preds, seg_true, case_names, pred_threshold=10):
     seg_dice = {}
 
     print("Calculating Dice Similarity Coefficients for segmentation predictions...")
@@ -286,12 +235,12 @@ def calculate_dice_similarity(seg_preds, seg_true, case_names):
             pred_mask = pred_mask.to(dtype=torch.float32)
             true_mask = torch.Tensor(true_mask).to(dtype=torch.float32)
 
-            dice_score = dice_coeff(pred_mask, true_mask)
+            dice_score = dice_coeff(pred_mask, true_mask, threshold=pred_threshold)
             case_dice_scores.append(dice_score.item())
 
         seg_dice[case] = case_dice_scores
-
     print("Dice Similarity Coefficients calculated.")
+    return seg_dice
 
 
 class CustomDataset(Dataset):
