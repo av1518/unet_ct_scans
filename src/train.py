@@ -5,7 +5,13 @@ import wandb
 
 
 def train_model(
-    model, train_loader, test_loader, epochs, learning_rate, dice_threshold
+    model,
+    train_loader,
+    test_loader,
+    epochs,
+    learning_rate,
+    dice_threshold,
+    bce_weight=0.5,
 ):
     print("Training the model...")
     wandb.init(project="lung_segmentation", entity="av662")
@@ -20,7 +26,7 @@ def train_model(
 
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     criterion = CombinedLoss(
-        dice_threshold=dice_threshold
+        dice_threshold=dice_threshold, bce_weight=bce_weight
     )  # Custom data loss that combines BCE and Dice loss
     accuracy_metric = BinaryAccuracy(threshold=0.5).to(device)
 

@@ -24,11 +24,23 @@ current_directory = os.path.dirname(os.path.realpath(__file__))
 parent_directory = os.path.dirname(current_directory)
 
 # Construct paths to the saved model and metrics
-model_filename = "unet_lr0.1_epochs2_bs3_trainacc0.99_testacc0.99_20240313-153629.pth"
-metrics_filename = "metrics_20240313-153629_new.json"
+model_filename = "unet_lr0.1_epochs2_bs3_trainacc1.00_testacc0.99_20240313-160230.pth"
+metrics_filename = "metrics_20240313-160230_new.json"
 
 model_path = os.path.join(parent_directory, "saved_models", model_filename)
 metrics_path = os.path.join(parent_directory, "saved_models", metrics_filename)
+
+# load the metrics
+with open(metrics_path, "r") as f:
+    metrics = json.load(f)
+
+# Extracting metrics for plotting
+losses = metrics["losses"]
+train_accuracies = metrics["train_accuracies"]
+test_accuracies = metrics["test_accuracies"]
+train_cases = metrics["train_cases"]
+test_cases = metrics["test_cases"]
+
 
 # Load the model
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -55,7 +67,7 @@ seg_preds = generate_seg_preds(model, case_arrays, case_names, device, threshold
 seg_acc = calculate_pred_accuracy(seg_preds, seg_arrays, case_names)
 # %%
 seg_dice = calculate_dice_similarity(
-    seg_preds, seg_arrays, case_names, pred_threshold=0.005 * 512 * 512
+    seg_preds, seg_arrays, case_names, pred_threshold=20
 )
 
 # %% plot the accuracy and dice similarity
@@ -123,12 +135,12 @@ def visualize_segmentation(case, slice_num, case_arrays, seg_true, seg_preds):
 
 # Visualize the segmentation for case_000
 case = "Case_000"
-slice_num = 40
+slice_num = 100
 visualize_segmentation(case, slice_num, case_arrays, seg_arrays, seg_preds)
 
 
 # %%
-def plot_dice_scores_histogram(seg_dice, selected_cases):
+def gather_scores(seg_dice, selected_cases):
     """
     Plots a histogram of Dice scores for the selected cases.
 
@@ -144,14 +156,75 @@ def plot_dice_scores_histogram(seg_dice, selected_cases):
         else:
             print(f"Case '{case}' not found in seg_dice")
 
-    # Plotting the histogram
-    plt.figure(figsize=(10, 6))
-    plt.hist(all_dice_scores, bins=20, color="skyblue", edgecolor="black")
-    plt.title("Histogram of Dice Scores")
-    plt.xlabel("Dice Score")
-    plt.ylabel("Frequency")
-    plt.grid(axis="y", alpha=0.75)
-    plt.show()
+    return all_dice_scores
 
 
-plot_dice_scores_histogram(seg_dice, case_names)
+# %% Histogram of Dice scores
+DSC_THRESHOLD_1 = 20
+DSC_THRESHOLD_2 = 0.005 * 512 * 512
+seg_dice = calculate_dice_similarity(
+    seg_preds, seg_arrays, case_names, pred_threshold=DSC_THRESHOLD_1
+)
+seg_dice_2 = calculate_dice_similarity(
+    seg_preds, seg_arrays, case_names, pred_threshold=DSC_THRESHOLD_2
+)
+
+
+# Plotting the histogram
+fig, axes = plt.subplots(2, 1, figsize=(10, 10))
+
+axes[0].hist(
+    gather_scores(seg_dice, train_cases),
+    bins=20,
+    color="skyblue",
+    edgecolor="black",
+    label=f"Train (DS Threshold = {DSC_THRESHOLD_1})",
+)
+
+
+axes[0].hist(
+    gather_scores(seg_dice_2, train_cases),
+    bins=20,
+    color="orange",
+    edgecolor="black",
+    alpha=0.7,
+    label=f"Train (DS Threshold = {DSC_THRESHOLD_2})",
+)
+
+
+axes[0].set_title("Histogram of Dice Scores for Train Cases")
+axes[0].set_xlabel("Dice Score")
+axes[0].set_ylabel("Frequency")
+axes[0].grid(axis="y", alpha=1)
+axes[0].legend()
+
+axes[1].hist(
+    gather_scores(seg_dice, test_cases),
+    bins=20,
+    color="firebrick",
+    edgecolor="black",
+    alpha=0.7,
+    label=f"Test (DS Threshold = {DSC_THRESHOLD_1})",
+)
+axes[1].set_title("Histogram of Dice Scores for Test Cases")
+axes[1].set_xlabel("Dice Score")
+axes[1].set_ylabel("Frequency")
+axes[1].grid(axis="y", alpha=1)
+
+axes[1].hist(
+    gather_scores(seg_dice_2, test_cases),
+    bins=20,
+    color="limegreen",
+    edgecolor="black",
+    alpha=0.7,
+    label=f"Test (DS Threshold = {DSC_THRESHOLD_2})",
+)
+
+axes[1].legend()
+
+
+plt.tight_layout()
+plt.savefig("DSC_histogram.png", format="png", dpi=300)
+plt.show()
+
+# %% Histogram of accuracy scores

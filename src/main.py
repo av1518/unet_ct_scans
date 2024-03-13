@@ -63,7 +63,8 @@ losses, train_accuracies, test_accuracies = train_model(
     test_loader,
     epochs=10,
     learning_rate=0.1,
-    dice_threshold=0.005 * 512 * 512,
+    dice_threshold=0.0025 * 512 * 512,
+    bce_weight=0.7,
 )
 
 # %%
@@ -114,6 +115,7 @@ metrics = {
     "test_accuracies": test_accuracies,
     "train_cases": train_cases,
     "test_cases": test_cases,
+    "bce_weight": 0.7,
 }
 
 
