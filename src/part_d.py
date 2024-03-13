@@ -24,8 +24,8 @@ current_directory = os.path.dirname(os.path.realpath(__file__))
 parent_directory = os.path.dirname(current_directory)
 
 # Construct paths to the saved model and metrics
-model_filename = "unet_lr0.1_epochs2_bs3_trainacc1.00_testacc0.99_20240311-213847.pth"
-metrics_filename = "metrics_20240311-213847.json"
+model_filename = "unet_lr0.1_epochs2_bs3_trainacc0.99_testacc0.99_20240313-153629.pth"
+metrics_filename = "metrics_20240313-153629_new.json"
 
 model_path = os.path.join(parent_directory, "saved_models", model_filename)
 metrics_path = os.path.join(parent_directory, "saved_models", metrics_filename)
@@ -49,13 +49,13 @@ case_names = [
     d for d in os.listdir(image_path) if os.path.isdir(os.path.join(image_path, d))
 ]
 
-seg_preds = generate_seg_preds(model, case_arrays, case_names, device, threshold=0.3)
+seg_preds = generate_seg_preds(model, case_arrays, case_names, device, threshold=0.1)
 
 # %%
 seg_acc = calculate_pred_accuracy(seg_preds, seg_arrays, case_names)
 # %%
 seg_dice = calculate_dice_similarity(
-    seg_preds, seg_arrays, case_names, pred_threshold=1000
+    seg_preds, seg_arrays, case_names, pred_threshold=0.005 * 512 * 512
 )
 
 # %% plot the accuracy and dice similarity
@@ -122,8 +122,8 @@ def visualize_segmentation(case, slice_num, case_arrays, seg_true, seg_preds):
 
 
 # Visualize the segmentation for case_000
-case = "Case_001"
-slice_num = 130
+case = "Case_000"
+slice_num = 40
 visualize_segmentation(case, slice_num, case_arrays, seg_arrays, seg_preds)
 
 

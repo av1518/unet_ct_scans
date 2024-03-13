@@ -4,7 +4,9 @@ from torchmetrics.classification import BinaryAccuracy
 import wandb
 
 
-def train_model(model, train_loader, test_loader, epochs, learning_rate):
+def train_model(
+    model, train_loader, test_loader, epochs, learning_rate, dice_threshold
+):
     print("Training the model...")
     wandb.init(project="lung_segmentation", entity="av662")
     wandb.config = {
@@ -17,7 +19,9 @@ def train_model(model, train_loader, test_loader, epochs, learning_rate):
     model.to(device)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-    criterion = CombinedLoss()  # Custom data loss that combines BCE and Dice loss
+    criterion = CombinedLoss(
+        dice_threshold=dice_threshold
+    )  # Custom data loss that combines BCE and Dice loss
     accuracy_metric = BinaryAccuracy(threshold=0.5).to(device)
 
     losses = []
