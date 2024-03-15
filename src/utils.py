@@ -24,7 +24,6 @@ def load_image_data(image_path):
     for case in tqdm(case_folders):
         case_path = os.path.join(image_path, case)
         case_arrays[case] = convert_dicom_to_numpy_slice_location(case_path)
-        # print(f"Converted {case} to numpy array with shape {case_arrays[case].shape}")
     print("Images loaded.")
 
     return case_arrays
@@ -194,18 +193,6 @@ def calculate_pred_accuracy(seg_preds, seg_true, case_names):
     print("Segmentation prediction accuracies calculated.")
 
     return seg_acc
-
-
-# def dice_coeff(seg_pred, seg_true, smooth=1):
-#     pred = seg_pred.view(-1).float()
-#     true = seg_true.view(-1).float()
-
-#     if pred.sum() == 0 and true.sum() == 0:
-#         return torch.tensor(1.0)  # Perfect match for cases with no segmentation
-
-#     intersection = (pred * true).sum()
-#     dice = (2.0 * intersection + smooth) / (pred.sum() + true.sum() + smooth)
-#     return dice
 
 
 def dice_coeff(seg_pred, seg_true, smooth=1, threshold=10):

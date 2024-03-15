@@ -7,9 +7,7 @@ from os import listdir
 from os.path import isfile, join
 import numpy as np
 from utils import (
-    convert_dicom_to_numpy,
     load_segmentation_data,
-    convert_dicom_to_numpy_2,
     convert_dicom_to_numpy_slice_location,
 )
 from models import SimpleUNet
