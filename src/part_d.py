@@ -227,4 +227,150 @@ plt.tight_layout()
 plt.savefig("DSC_histogram.png", format="png", dpi=300)
 plt.show()
 
+
 # %% Histogram of accuracy scores
+def gather_accuracy_scores(seg_acc, selected_cases):
+    """
+    Gathers all accuracy scores from the selected cases.
+
+    Args:
+        seg_acc (dict): Dictionary containing the accuracy scores, where keys are case names.
+        selected_cases (list): List of case names for which to gather the scores.
+    """
+    all_accuracy_scores = []
+    for case in selected_cases:
+        if case in seg_acc:
+            all_accuracy_scores.extend(seg_acc[case])
+        else:
+            print(f"Case '{case}' not found in seg_acc")
+
+    return all_accuracy_scores
+
+
+# Plotting the histogram
+fig, axes = plt.subplots(2, 1, figsize=(10, 10))
+
+# Histogram for training accuracy scores
+axes[0].hist(
+    gather_accuracy_scores(seg_acc, train_cases),
+    bins=20,
+    color="blue",
+    edgecolor="black",
+)
+axes[0].set_title("Histogram of Accuracy Scores for Train Cases")
+axes[0].set_xlabel("Accuracy Score")
+axes[0].set_ylabel("Frequency")
+axes[0].grid(axis="y", alpha=0.75)
+
+# %%
+# Histogram for testing accuracy scores
+fig, ax = plt.subplots(figsize=(10, 5))
+
+# Plot the accuracy for case_000
+case = "Case_001"
+dice_scores = seg_dice[case]
+
+ax.plot(dice_scores, label="DSC")
+
+
+ax.set_title(f"Dice Similarity Coefficients for {case}")
+ax.set_xlabel("Slice")
+ax.set_ylabel("Dice Similarity")
+fig.legend()
+
+plt.show()
+
+# %%
+
+
+def process_case_slices(seg_dice, num_examples=3):
+    best_per_case = {}
+    worst_per_case = {}
+    middle_per_case = {}
+
+    for case in seg_dice.keys():
+        # Filter out slices with DSC = 1 and sort the rest
+        case_scores = [
+            (idx, score)
+            for idx, score in enumerate(seg_dice[case])
+            if score < 1 and score > 0.3
+        ]
+        sorted_scores = sorted(case_scores, key=lambda x: x[1])
+
+        if sorted_scores:
+            worst_per_case[case] = sorted_scores[0:num_examples]  # Worst slices
+            best_per_case[case] = sorted_scores[-num_examples:]  # Best slices
+            middle_index = len(sorted_scores) // 2
+            middle_slices = sorted_scores[
+                max(0, middle_index - num_examples // 2) : min(
+                    len(sorted_scores), middle_index + num_examples // 2 + 1
+                )
+            ]
+            middle_per_case[case] = middle_slices  # Median slices
+    return best_per_case, worst_per_case, middle_per_case
+
+
+num_examples = 3
+best_slices, worst_slices, middle_slices = process_case_slices(seg_dice, num_examples)
+
+
+def visualize_slice_with_score(case_name, slice_info, case_arrays, seg_true, seg_preds):
+    slice_idx, dice_score = slice_info
+    image = case_arrays[case_name][slice_idx]
+    true_mask = seg_true[case_name][slice_idx]
+    pred_mask = seg_preds[case_name][slice_idx]
+
+    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+
+    # Original Image
+    axes[0].imshow(image, cmap="gray")
+    axes[0].set_title(f"Original Image\nCase: {case_name}, Slice: {slice_idx}")
+    axes[0].axis("off")
+
+    # Ground Truth Segmentation
+    axes[1].imshow(true_mask, cmap="jet")  # Overlay with alpha
+    axes[1].set_title("Ground Truth\nDice Score: {:.4f}".format(dice_score))
+    axes[1].axis("off")
+
+    # Predicted Segmentation
+    axes[2].imshow(pred_mask, cmap="jet")  # Overlay with alpha
+    axes[2].set_title("Predicted Segmentation\nDice Score: {:.4f}".format(dice_score))
+    axes[2].axis("off")
+
+    plt.tight_layout()
+    plt.show()
+
+
+## List of cases to visualize
+cases_to_visualize = ["Case_000", "Case_001", "Case_002"]
+
+# Visualize the best slices for selected cases
+for case in cases_to_visualize:
+    if case in best_slices:
+        for slice_info in best_slices[case]:
+            visualize_slice_with_score(
+                case, slice_info, case_arrays, seg_arrays, seg_preds
+            )
+    else:
+        print(f"Best slices for {case} are not available.")
+
+# %%
+# Visualize the worst slices for selected cases
+for case in cases_to_visualize:
+    if case in worst_slices:
+        for slice_info in worst_slices[case]:
+            visualize_slice_with_score(
+                case, slice_info, case_arrays, seg_arrays, seg_preds
+            )
+    else:
+        print(f"Worst slices for {case} are not available.")
+
+# %% Visualize the middle slices for selected cases
+for case in cases_to_visualize:
+    if case in middle_slices:
+        for slice_info in middle_slices[case]:
+            visualize_slice_with_score(
+                case, slice_info, case_arrays, seg_arrays, seg_preds
+            )
+    else:
+        print(f"Middle slices for {case} are not available.")
