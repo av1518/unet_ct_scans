@@ -1,6 +1,6 @@
 # %%
 import torch
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader
 import torch
 import matplotlib.pyplot as plt
 import os
@@ -58,7 +58,13 @@ model = SimpleUNet(in_channels=1, out_channels=1)
 # %%
 # Training -------------------------------------------------------
 losses, train_accuracies, test_accuracies = train_model(
-    model, train_loader, test_loader, epochs=10, learning_rate=0.1
+    model,
+    train_loader,
+    test_loader,
+    epochs=10,
+    learning_rate=0.1,
+    dice_threshold=0.0025 * 512 * 512,
+    bce_weight=0.7,
 )
 
 # %%
@@ -109,7 +115,27 @@ metrics = {
     "test_accuracies": test_accuracies,
     "train_cases": train_cases,
     "test_cases": test_cases,
+    "bce_weight": 0.7,
 }
+
+
+def save_metrics(metrics, directory, timestamp):
+    """
+    Saves the provided metrics, including train and test cases, as a JSON file in the specified directory.
+
+    Args:
+        metrics (dict): A dictionary containing the metrics to save.
+                        Expected to have keys like 'losses', 'train_accuracies', 'test_accuracies',
+                        'train_cases', and 'test_cases'.
+        directory (str): Path to the directory where the JSON file will be saved.
+        timestamp (str): Timestamp to append to the filename for uniqueness.
+    """
+    metrics_filename = f"metrics_{timestamp}_new.json"
+    metrics_path = os.path.join(directory, metrics_filename)
+
+    with open(metrics_path, "w") as f:
+        json.dump(metrics, f, indent=4)
+    print(f"Metrics saved to {metrics_path}")
 
 
 save_metrics(metrics, saved_models_dir, timestamp)

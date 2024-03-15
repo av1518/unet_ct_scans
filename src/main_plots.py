@@ -24,8 +24,8 @@ current_directory = os.path.dirname(os.path.realpath(__file__))
 parent_directory = os.path.dirname(current_directory)
 
 # Construct paths to the saved model and metrics
-model_filename = "unet_lr0.1_epochs2_bs3_trainacc1.00_testacc0.99_20240311-213847.pth"
-metrics_filename = "metrics_20240311-213847.json"
+model_filename = "unet_lr0.1_epochs2_bs3_trainacc1.00_testacc0.99_20240313-160230.pth"
+metrics_filename = "metrics_20240313-160230_new.json"
 
 model_path = os.path.join(parent_directory, "saved_models", model_filename)
 metrics_path = os.path.join(parent_directory, "saved_models", metrics_filename)
@@ -65,7 +65,7 @@ plt.legend()
 plt.tight_layout()
 
 fig_directory = os.path.join(parent_directory, "figures")
-filename = "metrics_plot.png"
+filename = f"metrics_plot_new_bce_w_0..png"
 filepath = os.path.join(fig_directory, filename)
 
 # Save the figure in a high-quality format
