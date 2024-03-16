@@ -4,6 +4,7 @@ import torch
 import json
 import matplotlib.pyplot as plt
 from models import SimpleUNet
+import matplotlib
 
 from utils import (
     load_segmentation_data,
@@ -11,6 +12,18 @@ from utils import (
     generate_seg_preds,
     calculate_pred_accuracy,
     calculate_dice_similarity,
+)
+
+matplotlib.rcParams.update(
+    {
+        "font.size": 14,
+        "text.usetex": True,
+        "font.family": "serif",
+        "axes.labelsize": 14,
+        "figure.autolayout": True,
+        "savefig.dpi": 300,
+        "figure.dpi": 300,
+    }
 )
 
 # %%
@@ -51,7 +64,35 @@ seg_path = os.path.join(parent_directory, "Dataset\Segmentations")
 # Load the data
 case_arrays = load_image_data(image_path)
 seg_arrays = load_segmentation_data(seg_path)
+# %%
+# Plotting the metrics
+plt.figure(figsize=(12, 5))
 
+plt.subplot(1, 2, 1)
+plt.plot(losses, label="Loss")
+plt.title("Training Loss")
+plt.xlabel("Epoch")
+plt.ylabel("Loss")
+plt.legend()
+
+plt.subplot(1, 2, 2)
+plt.plot(train_accuracies, label="Train Accuracy", color="orange")
+plt.plot(test_accuracies, label="Test Accuracy", color="green")
+plt.title("Training Accuracy")
+plt.xlabel("Epoch")
+plt.ylabel("Accuracy")
+plt.legend()
+
+plt.tight_layout()
+
+fig_directory = os.path.join(parent_directory, "figures")
+filename = f"metrics_plot_new_bce_w_0..png"
+filepath = os.path.join(fig_directory, filename)
+
+# Save the figure in a high-quality format
+plt.savefig(filepath, format="png", dpi=300)
+
+plt.show()
 # %%
 case_names = [
     d for d in os.listdir(image_path) if os.path.isdir(os.path.join(image_path, d))
