@@ -1,112 +1,150 @@
 # %%
+import torch
+from torch.utils.data import DataLoader
+import torch
 import matplotlib.pyplot as plt
-import pydicom
-from pydicom import dcmread
 import os
-from os import listdir
-from os.path import isfile, join
-import numpy as np
 from utils import (
-    convert_dicom_to_numpy,
     load_segmentation_data,
-    convert_dicom_to_numpy_2,
-    convert_dicom_to_numpy_slice_location,
+    CustomDataset,
+    create_paired_data,
+    save_metrics,
+    load_image_data,
 )
+from models import SimpleUNet
+from train import train_model
+import random
+import datetime
+import json
 
 # %%
-# load one dicom file
-# load path that is one level above the current directory
-
 current_directory = os.path.dirname(__file__)
 parent_directory = os.path.dirname(current_directory)
-
 image_path = os.path.join(parent_directory, "Dataset\Images")
 seg_path = os.path.join(parent_directory, "Dataset\Segmentations")
 
+# Load the data
+case_arrays = load_image_data(image_path)
+seg_arrays = load_segmentation_data(seg_path)
 
-# %%
+# %% Train-test split
+# First split the case_folders lists into training and test sets
 case_folders = [
     d for d in os.listdir(image_path) if os.path.isdir(os.path.join(image_path, d))
 ]
+torch.manual_seed(25101999)
+random.Random(25101999).shuffle(case_folders)  # fixing seed for reproducibility
 
-# Dictionary to store numpy arrays for each case
-case_arrays = {}
+# Calculate the number of cases for training
+num_train_cases = int(2 / 3 * len(case_folders))
 
-# Loop through each case and convert to numpy array
-for case in case_folders:
-    case_path = os.path.join(image_path, case)
-    case_arrays[case] = convert_dicom_to_numpy_2(case_path)
-    print(f"Converted {case} to numpy array with shape {case_arrays[case].shape}")
+# Split the cases into training and test sets
+train_cases = case_folders[:num_train_cases]
+test_cases = case_folders[num_train_cases:]
+
+# Create paired data
+train_paired_data = create_paired_data(train_cases, case_arrays, seg_arrays)
+test_paired_data = create_paired_data(test_cases, case_arrays, seg_arrays)
+
+# Create datasets
+train_dataset = CustomDataset(train_paired_data)
+test_dataset = CustomDataset(test_paired_data)
+
+train_loader = DataLoader(train_dataset, batch_size=3, shuffle=True)
+test_loader = DataLoader(test_dataset, batch_size=3, shuffle=False)
+
+model = SimpleUNet(in_channels=1, out_channels=1)
 
 # %%
-# Display the first slice of the first case
-plt.imshow(case_arrays["Case_010"][85], cmap="gray")
-
-# %%
-
-
-npz_filename = (
-    "Case_000_seg.npz"  # Replace with the name of an actual .npz file in the directory
+# Training -------------------------------------------------------
+losses, train_accuracies, test_accuracies = train_model(
+    model,
+    train_loader,
+    test_loader,
+    epochs=10,
+    learning_rate=0.1,
+    dice_threshold=0.0025 * 512 * 512,
+    bce_weight=0.7,
 )
-npz_file_path = os.path.join(seg_path, npz_filename)
 
-try:
-    with np.load(npz_file_path) as data:
-        print("Arrays in the .npz file:", list(data.keys()))
-except Exception as e:
-    print(f"An error occurred: {e}")
 # %%
+# Plotting
+plt.figure(figsize=(12, 5))
 
-segmentation_data = load_segmentation_data(seg_path)
-# %%
-print(segmentation_data.keys())
-# plot slice 42 of the first case
-fig, axs = plt.subplots(1, 2)
+plt.subplot(1, 2, 1)
+plt.plot(losses, label="Loss")
+plt.title("Training Loss")
+plt.xlabel("Epoch")
+plt.ylabel("Loss")
+plt.legend()
 
-slice = 50
-
-axs[0].imshow(segmentation_data["Case_010_seg"][-slice, :, :], cmap="jet")
-axs[0].set_title("Segmentation")
-
-axs[1].imshow(case_arrays["Case_010"][slice, :, :], cmap="gray")
-axs[1].set_title("Image")
+plt.subplot(1, 2, 2)
+plt.plot(train_accuracies, label="Train Accuracy", color="orange")
+plt.plot(test_accuracies, label="Test Accuracy", color="green")
+plt.title("Training Accuracy")
+plt.xlabel("Epoch")
+plt.ylabel("Accuracy")
+plt.legend()
 
 plt.show()
 
 # %%
-# print slice number of each case
-for case in case_folders:
-    print(f"{case}: {case_arrays[case].shape[0]} slices")
+lr = 0.1  # Learning rate
+epochs = 2  # Number of epochs
+batch_size = 3  # Batch size
+timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+final_train_accuracy = train_accuracies[-1]
+final_test_accuracy = test_accuracies[-1]
 
-# print slice number of each case in the segmentation data
-for case in segmentation_data:
-    print(f"{case}_seg: {segmentation_data[case].shape[0]} slices")
+model_filename = f"unet_lr{lr}_epochs{epochs}_bs{batch_size}_trainacc{final_train_accuracy:.2f}_testacc{final_test_accuracy:.2f}_{timestamp}.pth"
 
-# overlay the segmentation on the image
-# %%
+# Saving the model in the 'saved_models' directory
+saved_models_dir = os.path.join(parent_directory, "saved_models")
+os.makedirs(saved_models_dir, exist_ok=True)  # Create the directory if it doesn't exist
 
+model_save_path = os.path.join(saved_models_dir, model_filename)
+torch.save(model.state_dict(), model_save_path)
 
-# plot every slice overlayed with mask number
-for slice in range(0, 122, 1):
-    fig, axs = plt.subplots(1, 2)
-    axs[0].imshow(segmentation_data["Case_005_seg"][-slice], cmap="jet")
-    axs[0].imshow(case_arrays["Case_005"][slice - 1], cmap="gray", alpha=0.5)
-    axs[0].set_title("Overlay")
-
-    axs[1].imshow(case_arrays["Case_005"][slice - 1], cmap="gray")
-    axs[1].set_title(f"Image slice {slice} of")
-    plt.show()
+print(f"Model saved to {model_save_path}")
 
 # %%
-fig, axs = plt.subplots(1, 2)
+# Convert the metrics to a dictionary
+metrics = {
+    "losses": losses,
+    "train_accuracies": train_accuracies,
+    "test_accuracies": test_accuracies,
+    "train_cases": train_cases,
+    "test_cases": test_cases,
+    "bce_weight": 0.7,
+}
 
-case = "Case_007"
 
-axs[0].imshow(segmentation_data["Case_007_seg"][-slice, :, :], cmap="jet")
-axs[0].imshow(case_arrays[case][slice, :, :], cmap="gray", alpha=0.5)
-axs[0].set_title("Overlay")
+def save_metrics(metrics, directory, timestamp):
+    """
+    Saves the provided metrics, including train and test cases, as a JSON file in the specified directory.
 
-axs[1].imshow(case_arrays[case][slice, :, :], cmap="gray")
-axs[1].set_title(f"Image slice {slice} of Case_007")
+    Args:
+        metrics (dict): A dictionary containing the metrics to save.
+                        Expected to have keys like 'losses', 'train_accuracies', 'test_accuracies',
+                        'train_cases', and 'test_cases'.
+        directory (str): Path to the directory where the JSON file will be saved.
+        timestamp (str): Timestamp to append to the filename for uniqueness.
+    """
+    metrics_filename = f"metrics_{timestamp}_new.json"
+    metrics_path = os.path.join(directory, metrics_filename)
 
-plt.show()
+    with open(metrics_path, "w") as f:
+        json.dump(metrics, f, indent=4)
+    print(f"Metrics saved to {metrics_path}")
+
+
+save_metrics(metrics, saved_models_dir, timestamp)
+
+# Save the metrics to a JSON file
+metrics_filename = f"metrics_{timestamp}.json"
+metrics_path = os.path.join(saved_models_dir, metrics_filename)
+
+with open(metrics_path, "w") as f:
+    json.dump(metrics, f)
+
+print(f"Metrics saved to {metrics_path}")
