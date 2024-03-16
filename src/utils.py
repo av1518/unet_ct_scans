@@ -267,6 +267,29 @@ def calculate_pred_accuracy(seg_preds, seg_true, case_names):
 
 
 def dice_coeff(seg_pred, seg_true, smooth=1, threshold=10):
+    """
+    @brief Calculates the Dice Coefficient between two binary tensors, typically used for evaluating segmentation predictions.
+
+    The Dice Coefficient (also known as Dice Similarity Coefficient) is a measure of overlap
+    between two samples. This function is commonly used in image segmentation to compare
+    the similarity between the predicted segmentation mask and the ground truth mask.
+
+    @param seg_pred: The predicted segmentation mask. Should be a binary (or softmax/sigmoid probabilities converted to binary) tensor.
+    @param seg_true: The ground truth segmentation mask. Should be a binary tensor.
+    @param smooth (float, optional): A smoothing constant added to the numerator and denominator to avoid division by zero errors. Default is 1.
+    @param threshold (float, optional): A threshold value below which the predicted mask is considered effectively empty. This helps handle cases where both the predicted mask and the ground truth mask have no positive pixels. Default is 10.
+
+    @return: The Dice Coefficient as a floating-point scalar. Higher values indicate greater similarity between the prediction and the ground truth.
+
+    Example:
+    ```
+    dice_score = dice_coeff(pred_mask, true_mask)
+    ```
+
+    @note This implementation includes a threshold to handle the special case where both the prediction
+    and the ground truth are effectively empty (e.g., no positive pixels in the mask).
+    This scenario is common in medical image segmentation where some slices may not contain the region of interest.
+    """
     pred = seg_pred.view(-1).float()
     true = seg_true.view(-1).float()
 
