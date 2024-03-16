@@ -2,3 +2,4 @@ Dataset/
 *.pdf
 *.pyc
 wandb/
+report/
