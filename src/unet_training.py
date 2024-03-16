@@ -12,7 +12,7 @@ from utils import (
     load_image_data,
 )
 from models import SimpleUNet
-from train import train_model
+from train_func import train_model
 import random
 import datetime
 import json
