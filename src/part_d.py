@@ -4,13 +4,9 @@ import torch
 import json
 import matplotlib.pyplot as plt
 from models import SimpleUNet
-import matplotlib
 
 from utils import (
     load_segmentation_data,
-    CustomDataset,
-    create_paired_data,
-    save_metrics,
     load_image_data,
     generate_seg_preds,
     calculate_pred_accuracy,

@@ -1,21 +1,22 @@
 # %% In this script we manually check the mask and image overlay for each case
-import matplotlib.pyplot as plt
-import pydicom
-from pydicom import dcmread
 import os
-from os import listdir
-from os.path import isfile, join
-import numpy as np
-from utils import (
-    load_segmentation_data,
-    convert_dicom_to_numpy_slice_location,
-)
-from models import SimpleUNet
-
-# %%
+import sys
 
 current_directory = os.path.dirname(__file__)
 parent_directory = os.path.dirname(current_directory)
+sys.path.append(parent_directory)
+
+import matplotlib.pyplot as plt
+from src.utils import (
+    load_segmentation_data,
+    convert_dicom_to_numpy_slice_location,
+)
+
+# Case to be checked and the interval to check
+case = "Case_006"
+interval = 10
+# %%
+
 
 image_path = os.path.join(parent_directory, "Dataset\Images")
 seg_path = os.path.join(parent_directory, "Dataset\Segmentations")
@@ -37,10 +38,7 @@ print("Images loaded.")
 
 segmentation_data = load_segmentation_data(seg_path)
 # %%
-# plot every slice overlayed with mask number
-
-case = "Case_006"
-for slice in range(0, 122, 10):
+for slice in range(0, 122, interval):
     fig, axs = plt.subplots(1, 2)
     axs[0].imshow(segmentation_data[case][slice], cmap="jet")
     axs[0].imshow(case_arrays[case][slice], cmap="gray", alpha=0.5)
@@ -49,15 +47,3 @@ for slice in range(0, 122, 10):
     axs[1].imshow(case_arrays[case][slice], cmap="gray")
     axs[1].set_title(f"Image slice {slice} of {case}")
     plt.show()
-
-# %%
-plt.imshow(segmentation_data[case][42], cmap="jet")
-print(np.unique(segmentation_data[case][42]))
-
-# %%
-model = SimpleUNet(in_channels=1, out_channels=1)
-
-# print parameters
-print("Model's state_dict:")
-for param_tensor in model.state_dict():
-    print(param_tensor, "\t", model.state_dict()[param_tensor].size())
