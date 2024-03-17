@@ -76,6 +76,13 @@ def train_model(
         epoch_test_accuracy = accuracy_metric.compute()
         test_accuracies.append(epoch_test_accuracy.item())
         print(f", Test Accuracy: {epoch_test_accuracy:.4f}")
-        wandb.log({"epoch": epoch, "loss": epoch_loss, "accuracy": epoch_accuracy})
+        wandb.log(
+            {
+                "epoch": epoch,
+                "loss": epoch_loss,
+                "accuracy": epoch_accuracy,
+                "test_accuracy": epoch_test_accuracy,
+            }
+        )
 
     return losses, train_accuracies, test_accuracies

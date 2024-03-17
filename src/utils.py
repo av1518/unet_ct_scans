@@ -189,16 +189,15 @@ def create_paired_data(cases, case_arrays, segmentation_data):
 
 def save_metrics(metrics, directory, timestamp):
     """
-    Saves the provided metrics, including train and test cases, as a JSON file in the specified directory.
+    @brief Saves the provided metrics, including train and test cases, as a JSON file in the specified directory.
 
-    Args:
-        metrics (dict): A dictionary containing the metrics to save.
-                        Expected to have keys like 'losses', 'train_accuracies', 'test_accuracies',
-                        'train_cases', and 'test_cases'.
-        directory (str): Path to the directory where the JSON file will be saved.
-        timestamp (str): Timestamp to append to the filename for uniqueness.
+    @param metrics (dict): A dictionary containing the metrics to save.
+                           Expected to have keys like 'losses', 'train_accuracies', 'test_accuracies',
+                           'train_cases', and 'test_cases'.
+    @param directory (str): Path to the directory where the JSON file will be saved.
+    @param timestamp (str): Timestamp to append to the filename for uniqueness.
     """
-    metrics_filename = f"metrics_{timestamp}.json"
+    metrics_filename = f"metrics_{timestamp}_new.json"
     metrics_path = os.path.join(directory, metrics_filename)
 
     with open(metrics_path, "w") as f:
@@ -207,6 +206,25 @@ def save_metrics(metrics, directory, timestamp):
 
 
 def predict_segmentation(model, image_array, device, threshold=0.5):
+    """
+    @brief Predicts the segmentation mask for a given image using a trained model.
+
+    This function processes a single image array through the provided model to generate
+    a segmentation mask. It adapts the image array to match the input requirements of the
+    model, specifically adding necessary dimensions to mimic batch size and channel depth.
+    The model's prediction is then passed through a sigmoid activation function to convert
+    logits into probabilities. A threshold is applied to these probabilities to generate
+    a binary mask.
+
+    @param model: The trained segmentation model used for prediction.
+    @param image_array: A 2D NumPy array representing the input image.
+    @param device: The device (CPU or CUDA) on which the model and data are located.
+    @param threshold: The threshold for converting sigmoid outputs to binary values.
+                      Defaults to 0.5.
+
+    @return A 2D tensor representing the predicted binary segmentation mask,
+            moved back to the CPU.
+    """
     model.to(device)
     # Add dimensions to match the model input shape [batch_size, channels, height, width]
     image_tensor = (
@@ -222,6 +240,26 @@ def predict_segmentation(model, image_array, device, threshold=0.5):
 
 
 def generate_seg_preds(model, case_arrays, case_names, device, threshold=0.5):
+    """
+    @brief Generates segmentation predictions for a set of images using a trained model.
+
+    This function iterates over a specified list of cases, applying the trained model to
+    generate segmentation predictions for each image within these cases. The function
+    utilises the `predict_segmentation` method for each image and collects the predictions
+    in a dictionary, keyed by case names.
+
+    @param model: The trained model used for generating segmentation predictions.
+    @param case_arrays: A dictionary where keys are case identifiers and values are lists
+                        of image arrays (NumPy arrays) for each case.
+    @param case_names: A list of case identifiers for which predictions are to be generated.
+    @param device: The device (CPU or CUDA) on which the model and data are located.
+    @param threshold: The threshold used in `predict_segmentation` for binarising the
+                      model's output. Defaults to 0.5.
+
+    @return A dictionary where keys are case identifiers and values are lists of
+            predicted segmentation masks (as tensors) for each image in the case.
+    """
+
     seg_preds = {}
     model.eval()
 
@@ -238,6 +276,25 @@ def generate_seg_preds(model, case_arrays, case_names, device, threshold=0.5):
 
 
 def calculate_pred_accuracy(seg_preds, seg_true, case_names):
+    """
+    @brief Calculates binary accuracies of predicted segmentations compared to ground truth.
+
+    This function iterates through each case specified in `case_names`, comparing the
+    predicted segmentation masks (`seg_preds`) against the true masks (`seg_true`). It
+    calculates the binary accuracy for each slice within a case using the BinaryAccuracy
+    metric from torchmetrics. The accuracies for each slice in a case are compiled into a
+    list and stored in a dictionary keyed by the case names.
+
+    @param seg_preds: A dictionary containing the predicted segmentation masks. Keys are
+                      case identifiers, and values are lists of predicted masks for each
+                      image slice.
+    @param seg_true: A dictionary containing the true segmentation masks. Keys are case
+                     identifiers, and values are lists of true masks for each image slice.
+    @param case_names: A list of case identifiers for which the accuracy is to be calculated.
+
+    @return A dictionary where keys are case identifiers and values are lists of binary
+            accuracies for each image slice in the respective case.
+    """
     seg_acc = {}
 
     print(

@@ -27,7 +27,6 @@ matplotlib.rcParams.update(
 )
 
 # %%
-
 # Define the current directory and parent directory
 current_directory = os.path.dirname(os.path.realpath(__file__))
 parent_directory = os.path.dirname(current_directory)
@@ -69,28 +68,44 @@ seg_arrays = load_segmentation_data(seg_path)
 plt.figure(figsize=(12, 5))
 
 plt.subplot(1, 2, 1)
-plt.plot(losses, label="Loss")
-plt.title("Training Loss")
+plt.plot(
+    range(1, 11), losses, label="Average loss", color="blue", linestyle="--", marker="o"
+)
 plt.xlabel("Epoch")
-plt.ylabel("Loss")
+plt.ylabel(r"$\overline{L}_{{total}}$")
+plt.xticks(range(1, 11))
 plt.legend()
 
 plt.subplot(1, 2, 2)
-plt.plot(train_accuracies, label="Train Accuracy", color="orange")
-plt.plot(test_accuracies, label="Test Accuracy", color="green")
-plt.title("Training Accuracy")
+plt.plot(
+    range(1, 11),
+    train_accuracies,
+    label="Mean Train Accuracy",
+    color="orange",
+    linestyle="--",
+    marker="o",
+)
+plt.plot(
+    range(1, 11),
+    test_accuracies,
+    label="Mean Test Accuracy",
+    color="green",
+    linestyle="--",
+    marker="o",
+)
 plt.xlabel("Epoch")
-plt.ylabel("Accuracy")
+plt.ylabel(r"$\overline{BA}$")
+plt.xticks(range(1, 11))
 plt.legend()
 
 plt.tight_layout()
 
-fig_directory = os.path.join(parent_directory, "figures")
-filename = f"metrics_plot_new_bce_w_0..png"
-filepath = os.path.join(fig_directory, filename)
+# fig_directory = os.path.join(parent_directory, "figures")
+# filename = f"metrics_plot.png"
+# figurepath = os.path.join(fig_directory, filename)
 
 # Save the figure in a high-quality format
-plt.savefig(filepath, format="png", dpi=300)
+plt.savefig(f"metrics_plot.png", format="png", dpi=300)
 
 plt.show()
 # %%
@@ -99,81 +114,80 @@ case_names = [
 ]
 
 seg_preds = generate_seg_preds(model, case_arrays, case_names, device, threshold=0.1)
-
-# %%
 seg_acc = calculate_pred_accuracy(seg_preds, seg_arrays, case_names)
-# %%
 seg_dice = calculate_dice_similarity(
     seg_preds, seg_arrays, case_names, pred_threshold=20
 )
 
 # %% plot the accuracy and dice similarity
 
-ax, fig = plt.subplots(1, 2, figsize=(20, 10))
+ax, fig = plt.subplots(1, 2, figsize=(10, 5))
 
 # Plot the accuracy for case_000
 case = "Case_001"
 accuracies = seg_acc[case]
 dice_scores = seg_dice[case]
 
-fig[0].plot(accuracies, label="Accuracy")
+fig[0].plot(accuracies, label="BA")
 fig[1].plot(dice_scores, label="Dice Similarity")
 
-fig[0].set_title(f"Segmentation Prediction Accuracies for {case}")
+fig[0].set_title(f"{case}")
 fig[0].set_xlabel("Slice")
-fig[0].set_ylabel("Accuracy")
-fig[0].legend()
+fig[0].set_ylabel("BA(predicted, true)")
 
-fig[1].set_title(f"Dice Similarity Coefficients for {case}")
+
+fig[1].set_title(f"{case}")
 fig[1].set_xlabel("Slice")
-fig[1].set_ylabel("Dice Similarity")
-fig[1].legend()
+fig[1].set_ylabel("DSC(predicted, true)")
+
+plt.savefig("accuracy_dice_scatter.png", format="png", dpi=300)
 
 plt.show()
 
 
 # %%
-def visualize_segmentation(case, slice_num, case_arrays, seg_true, seg_preds):
-    """
-    Visualizes the CT scan slice along with ground truth and predicted masks.
+# def visualize_segmentation(case, slice_num, case_arrays, seg_true, seg_preds):
+#     """
+#     Visualizes the CT scan slice along with ground truth and predicted masks.
 
-    Args:
-        case (str): The case identifier.
-        slice_num (int): The slice number to visualize.
-        case_arrays (dict): Dictionary containing original image data.
-        seg_true (dict): Dictionary containing ground truth segmentation masks.
-        seg_preds (dict): Dictionary containing predicted segmentation masks.
-    """
-    image = case_arrays[case][slice_num]
-    true_mask = seg_true[case][slice_num]
-    pred_mask = seg_preds[case][slice_num]
+#     Args:
+#         case (str): The case identifier.
+#         slice_num (int): The slice number to visualize.
+#         case_arrays (dict): Dictionary containing original image data.
+#         seg_true (dict): Dictionary containing ground truth segmentation masks.
+#         seg_preds (dict): Dictionary containing predicted segmentation masks.
+#     """
+#     image = case_arrays[case][slice_num]
+#     true_mask = seg_true[case][slice_num]
+#     pred_mask = seg_preds[case][slice_num]
 
-    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+#     fig, axes = plt.subplots(1, 3, figsize=(15, 5))
 
-    # Display original image
-    axes[0].imshow(image, cmap="gray")
-    axes[0].set_title("Original Image")
-    axes[0].axis("off")
+#     # Display original image
+#     axes[0].imshow(image, cmap="gray")
+#     axes[0].set_title("Original Image, Slice: {}, Case: {}".format(slice_num, case))
+#     axes[0].axis("off")
 
-    # Display ground truth mask overlay
-    axes[1].imshow(image, cmap="gray")
-    axes[1].imshow(true_mask, cmap="jet", alpha=0.5)
-    axes[1].set_title("Ground Truth Mask")
-    axes[1].axis("off")
+#     # Display ground truth mask overlay
+#     axes[1].imshow(image, cmap="gray")
+#     axes[1].imshow(true_mask, cmap="jet", alpha=0.5)
+#     axes[1].set_title("Ground Truth Mask ")
+#     axes[1].axis("off")
 
-    # Display predicted mask overlay
-    axes[2].imshow(image, cmap="gray")
-    axes[2].imshow(pred_mask, cmap="jet", alpha=0.5)
-    axes[2].set_title("Predicted Mask")
-    axes[2].axis("off")
-
-    plt.show()
+#     # Display predicted mask overlay
+#     axes[2].imshow(image, cmap="gray")
+#     axes[2].imshow(pred_mask, cmap="jet", alpha=0.5)
+#     axes[2].set_title("Predicted Mask")
+#     axes[2].axis("off")
 
 
-# Visualize the segmentation for case_000
-case = "Case_000"
-slice_num = 100
-visualize_segmentation(case, slice_num, case_arrays, seg_arrays, seg_preds)
+#     plt.show()
+
+
+# # Visualize the segmentation for case_000
+# case = "Case_001"
+# slice_num = 1
+# visualize_segmentation(case, slice_num, case_arrays, seg_arrays, seg_preds)
 
 
 # %%
@@ -206,31 +220,18 @@ seg_dice_2 = calculate_dice_similarity(
     seg_preds, seg_arrays, case_names, pred_threshold=DSC_THRESHOLD_2
 )
 
-
+# %%
 # Plotting the histogram
-fig, axes = plt.subplots(2, 1, figsize=(10, 10))
+fig, axes = plt.subplots(1, 2, figsize=(10, 5))
 
 axes[0].hist(
     gather_scores(seg_dice, train_cases),
     bins=20,
-    color="skyblue",
-    edgecolor="black",
-    label=f"Train (DS Threshold = {DSC_THRESHOLD_1})",
+    color="blue",
+    label=f"Train (DSC Threshold = {DSC_THRESHOLD_1})",
 )
 
-
-axes[0].hist(
-    gather_scores(seg_dice_2, train_cases),
-    bins=20,
-    color="orange",
-    edgecolor="black",
-    alpha=0.7,
-    label=f"Train (DS Threshold = {DSC_THRESHOLD_2})",
-)
-
-
-axes[0].set_title("Histogram of Dice Scores for Train Cases")
-axes[0].set_xlabel("Dice Score")
+axes[0].set_xlabel("DSC")
 axes[0].set_ylabel("Frequency")
 axes[0].grid(axis="y", alpha=1)
 axes[0].legend()
@@ -238,30 +239,55 @@ axes[0].legend()
 axes[1].hist(
     gather_scores(seg_dice, test_cases),
     bins=20,
-    color="firebrick",
-    edgecolor="black",
-    alpha=0.7,
-    label=f"Test (DS Threshold = {DSC_THRESHOLD_1})",
+    color="black",
+    alpha=1,
+    label=f"Test (DSC Threshold = {DSC_THRESHOLD_1})",
 )
-axes[1].set_title("Histogram of Dice Scores for Test Cases")
+# axes[1].set_title("Histogram of Dice Scores for Test Cases")
+axes[1].set_xlabel("DSC")
+axes[1].set_ylabel("Frequency")
+axes[1].grid(axis="y", alpha=1)
+
+axes[1].legend()
+
+plt.tight_layout()
+plt.savefig("DSC_histogram.png", format="png", dpi=300)
+plt.show()
+# %%
+# Plotting the histogram
+fig, axes = plt.subplots(1, 2, figsize=(10, 5))
+
+
+axes[0].hist(
+    gather_scores(seg_dice_2, train_cases),
+    bins=30,
+    color="blue",
+    edgecolor="grey",
+    label=f"Train (DS Threshold = {int(DSC_THRESHOLD_2)})",
+)
+
+
+axes[0].set_xlabel("Dice Score")
+axes[0].set_ylabel("Frequency")
+axes[0].grid(axis="y", alpha=1)
+axes[0].legend()
+
+
 axes[1].set_xlabel("Dice Score")
 axes[1].set_ylabel("Frequency")
 axes[1].grid(axis="y", alpha=1)
 
 axes[1].hist(
     gather_scores(seg_dice_2, test_cases),
-    bins=20,
-    color="limegreen",
-    edgecolor="black",
-    alpha=0.7,
-    label=f"Test (DS Threshold = {DSC_THRESHOLD_2})",
+    bins=30,
+    color="black",
+    label=f"Test (DS Threshold = {int(DSC_THRESHOLD_2)})",
 )
 
 axes[1].legend()
 
-
 plt.tight_layout()
-plt.savefig("DSC_histogram.png", format="png", dpi=300)
+plt.savefig("DSC_histogram_higher_thresh.png", format="png", dpi=300)
 plt.show()
 
 
@@ -285,22 +311,42 @@ def gather_accuracy_scores(seg_acc, selected_cases):
 
 
 # Plotting the histogram
-fig, axes = plt.subplots(2, 1, figsize=(10, 10))
+fig, axes = plt.subplots(1, 2, figsize=(10, 5))
 
 # Histogram for training accuracy scores
 axes[0].hist(
     gather_accuracy_scores(seg_acc, train_cases),
     bins=20,
-    color="blue",
-    edgecolor="black",
+    color="navy",
+    label="Train cases",
 )
-axes[0].set_title("Histogram of Accuracy Scores for Train Cases")
-axes[0].set_xlabel("Accuracy Score")
+axes[0].set_xlabel("BA Score")
 axes[0].set_ylabel("Frequency")
 axes[0].grid(axis="y", alpha=0.75)
+axes[0].legend()
 
-# %%
 # Histogram for testing accuracy scores
+axes[1].hist(
+    gather_accuracy_scores(seg_acc, test_cases),
+    bins=20,
+    color="skyblue",
+    label="Test cases",
+)
+axes[1].set_xlabel("BA Score")
+axes[1].set_ylabel("Frequency")
+axes[1].grid(axis="y", alpha=0.75)
+
+axes[1].legend()
+
+# Set common title
+fig.suptitle("Histogram of BA Scores")
+
+# Save the figure
+plt.savefig("accuracy_histogram.png", format="png", dpi=300)
+
+plt.tight_layout()
+
+# %%Scatter plot of accuracy and dice similarity
 fig, ax = plt.subplots(figsize=(10, 5))
 
 # Plot the accuracy for case_000
@@ -308,18 +354,14 @@ case = "Case_001"
 dice_scores = seg_dice[case]
 
 ax.plot(dice_scores, label="DSC")
-
-
 ax.set_title(f"Dice Similarity Coefficients for {case}")
 ax.set_xlabel("Slice")
 ax.set_ylabel("Dice Similarity")
 fig.legend()
-
 plt.show()
 
+
 # %%
-
-
 def process_case_slices(seg_dice, num_examples=3):
     best_per_case = {}
     worst_per_case = {}
@@ -411,3 +453,10 @@ for case in cases_to_visualize:
             )
     else:
         print(f"Middle slices for {case} are not available.")
+
+# %% visualise 1 slice
+case = "Case_001"
+slice_num = 3
+visualize_slice_with_score(
+    case, (slice_num, seg_dice[case][slice_num]), case_arrays, seg_arrays, seg_preds
+)
