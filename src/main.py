@@ -260,28 +260,28 @@ fig, axes = plt.subplots(1, 2, figsize=(10, 5))
 
 axes[0].hist(
     gather_scores(seg_dice_2, train_cases),
-    bins=30,
+    bins=20,
     color="blue",
     edgecolor="grey",
-    label=f"Train (DS Threshold = {int(DSC_THRESHOLD_2)})",
+    label=f"Train (DSC Threshold = {int(DSC_THRESHOLD_2)})",
 )
 
 
-axes[0].set_xlabel("Dice Score")
+axes[0].set_xlabel("DSC")
 axes[0].set_ylabel("Frequency")
 axes[0].grid(axis="y", alpha=1)
 axes[0].legend()
 
 
-axes[1].set_xlabel("Dice Score")
+axes[1].set_xlabel("DSC")
 axes[1].set_ylabel("Frequency")
 axes[1].grid(axis="y", alpha=1)
 
 axes[1].hist(
     gather_scores(seg_dice_2, test_cases),
-    bins=30,
+    bins=20,
     color="black",
-    label=f"Test (DS Threshold = {int(DSC_THRESHOLD_2)})",
+    label=f"Test (DSC Threshold = {int(DSC_THRESHOLD_2)})",
 )
 
 axes[1].legend()
