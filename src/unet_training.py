@@ -1,3 +1,23 @@
+"""
+@file unet_training.py
+@brief Training and Evaluation of a Simple U-Net Model for Image Segmentation.
+
+This script is dedicated to the training, evaluation, and saving of a Simple U-Net model
+for image segmentation tasks. The script includes steps for loading image and segmentation 
+data, creating a train-test split, and setting up DataLoaders for both training and testing 
+sets. A custom model defined in 'models.py' is trained using a defined training function.
+
+Does the following:
+- Data Loading: Loads image and segmentation data from specified directories.
+- Train-Test Split: Randomly splits cases into training and test sets.
+- Data Preparation: Creates paired datasets for training and testing.
+- Model Training: Trains the Simple U-Net model and tracks loss and accuracy metrics.
+- Visualisation: Plots training loss and accuracy metrics.
+- Model Saving: Saves the trained model with a timestamp and training parameters.
+- Metrics Saving: Stores training metrics in a JSON file.
+
+"""
+
 # %%
 import torch
 from torch.utils.data import DataLoader
@@ -15,7 +35,6 @@ from models import SimpleUNet
 from train_func import train_model
 import random
 import datetime
-import json
 
 # %%
 current_directory = os.path.dirname(__file__)
