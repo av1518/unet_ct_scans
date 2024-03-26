@@ -11,7 +11,87 @@ import json
 from torchmetrics.classification import BinaryAccuracy
 
 
+def convert_dicom_to_numpy_slice_location(case_path):
+    """
+    @brief Convert a series of DICOM files in a directory into a 3D NumPy array based
+    on the "SliceLocation" metadata.
+
+    This function processes all DICOM (.dcm) files located in the specified directory,
+    extracting the slice location information and using it to sort the files in the
+    correct sequence. It then reads the pixel data from each file and stacks them into
+    a 3D NumPy array. The function is critical for ensuring that the slices are in the
+    proper order, which is necessary for accurate 3D representation and analysis.
+
+    @param case_path The path to the directory containing the DICOM files.
+                     This directory should contain all the .dcm files for a single case.
+
+    @return A 3D NumPy array containing the stacked pixel data from the DICOM files.
+            The shape of the array is [number_of_slices, rows, columns], where
+            number_of_slices is the total number of DICOM files in the directory, and
+            rows and columns correspond to the dimensions of the images.
+
+    @exception ValueError Thrown when no DICOM files with 'SliceLocation' metadata are
+                          found or if the directory does not contain any .dcm files.
+
+    Example usage:
+    >>> numpy_array = convert_dicom_to_numpy_slice_location('/path/to/dicom/files')
+    """
+    # List all DICOM files in the directory
+    dicom_files = [f for f in listdir(case_path) if f.endswith(".dcm")]
+
+    # Read SliceLocation tag for each file and store in a list
+    dicom_metadata = []
+    for file in dicom_files:
+        file_path = join(case_path, file)
+        metadata = dcmread(file_path)
+        slice_location = getattr(metadata, "SliceLocation", None)
+        if slice_location is not None:
+            dicom_metadata.append((file, slice_location))
+        else:
+            print(f"SliceLocation not found in {file}")
+
+    # Sort the list based on the slice location
+    # (important because masks are sorted by slice location as well)
+    dicom_metadata.sort(key=lambda x: x[1])
+
+    # Create an empty 3D numpy array in correct shape to store the images
+    if dicom_metadata:
+        num_slices = len(dicom_metadata)
+        ref_metadata = dcmread(join(case_path, dicom_metadata[0][0]))
+        image_shape = (num_slices, int(ref_metadata.Rows), int(ref_metadata.Columns))
+        case_images = np.empty(image_shape, dtype=ref_metadata.pixel_array.dtype)
+
+        # Load the images in the sorted order
+        for i, (file, _) in enumerate(dicom_metadata):
+            file_path = join(case_path, file)
+            metadata = dcmread(file_path)
+            case_images[i, :, :] = metadata.pixel_array
+    else:
+        raise ValueError("No DICOM files with SliceLocation found.")
+
+    return case_images
+
+
 def load_image_data(image_path):
+    """
+    @Brief Loads image data from all DICOM files located in a specified directory. Returns
+    dictionary of 3D NumPy arrays representing the stacked images of each case.
+
+    This function processes directories within the given image path, each representing
+    a distinct case. It reads DICOM (.dcm) files from these directories, ensuring that
+    the slices are sorted based on their 'SliceLocation' metadata for accurate 3D
+    representation. The function employs 'convert_dicom_to_numpy_slice_location' for
+    converting the DICOM files of each case into a 3D NumPy array.
+
+    @param image_path: The path to the directory containing subdirectories for each case.
+                       Each subdirectory should contain DICOM files for that particular case.
+
+    @return: A dictionary where keys are case names derived from the subdirectory names,
+             and values are 3D NumPy arrays representing the stacked images of each case.
+
+    Example usage:
+    >>> image_data = load_image_data('/path/to/image/data')
+    """
     case_folders = [
         d for d in os.listdir(image_path) if os.path.isdir(os.path.join(image_path, d))
     ]
@@ -30,6 +110,29 @@ def load_image_data(image_path):
 
 
 def load_segmentation_data(segmentation_path):
+    """
+    @brief Loads segmentation data from .npz files located in a specified directory.
+
+    Each .npz file in the directory should contain segmentation data related to a specific case.
+    The function expects the file naming convention to follow "Case_XXX_seg.npz", where "XXX"
+    represents the case identifier. The segmentation data for each case is extracted and
+    stored in a dictionary keyed by the case name.
+
+    The function specifically looks for a key named 'masks' in each .npz file to retrieve
+    the segmentation masks.
+
+    @param segmentation_path: The path to the directory containing the .npz files with
+                              segmentation data.
+
+    @return: A dictionary where the keys are case identifiers, and the values are the
+             corresponding segmentation mask arrays.
+
+    @exception: If a .npz file does not contain the 'masks' key, a message is printed
+                indicating that the key was not found in that file.
+
+    Example usage:
+    >>> segmentation_data = load_segmentation_data('/path/to/segmentation/data')
+    """
     segmentation_arrays = {}
 
     # List all .npz files in the directory
@@ -53,59 +156,27 @@ def load_segmentation_data(segmentation_path):
     return segmentation_arrays
 
 
-def convert_dicom_to_numpy_slice_location(case_path):
-    # List all DICOM files in the directory
-    dicom_files = [f for f in listdir(case_path) if f.endswith(".dcm")]
-
-    # Read SliceLocation tag for each file and store in a list
-    dicom_metadata = []
-    for file in dicom_files:
-        file_path = join(case_path, file)
-        metadata = dcmread(file_path)
-        slice_location = getattr(metadata, "SliceLocation", None)
-        # print(f"SliceLocation: {slice_location}")
-        if slice_location is not None:
-            dicom_metadata.append((file, slice_location))
-        else:
-            print(f"SliceLocation not found in {file}")
-
-    # Sort the list based on the slice location
-    # (important because masks are sorted by slice location as well)
-    dicom_metadata.sort(key=lambda x: x[1])
-
-    # Create a 3D numpy array to store the images
-    if dicom_metadata:
-        num_slices = len(dicom_metadata)
-        ref_metadata = dcmread(join(case_path, dicom_metadata[0][0]))
-        image_shape = (num_slices, int(ref_metadata.Rows), int(ref_metadata.Columns))
-        case_images = np.empty(image_shape, dtype=ref_metadata.pixel_array.dtype)
-
-        # Load the images in the sorted order
-        for i, (file, _) in enumerate(dicom_metadata):
-            file_path = join(case_path, file)
-            metadata = dcmread(file_path)
-            case_images[i, :, :] = metadata.pixel_array
-    else:
-        raise ValueError("No DICOM files with SliceLocation found.")
-
-    return case_images
-
-
 def create_paired_data(cases, case_arrays, segmentation_data):
     """
-    Creates a list of paired data, where each pair consists of an image and its corresponding segmentation mask.
+    @brief Creates a list of paired data from images and segmentation masks.
 
-    This function iterates through the given cases, retrieves corresponding image and segmentation arrays,
-    and pairs individual slices from these arrays. The pairing is done based on the index of the slices,
-    ensuring that each image slice is paired with its corresponding segmentation mask slice.
+    This function iterates through specified cases and pairs each image slice
+    with its corresponding segmentation mask slice. The pairs are formed based
+    on the index of the slices within their respective arrays, ensuring
+    accurate alignment between each image and its segmentation mask.
 
-    Args:
-        cases (list): A list of case identifiers. Each identifier corresponds to a key in case_arrays and segmentation_data.
-        case_arrays (dict): A dictionary where keys are case identifiers and values are image arrays (as NumPy arrays).
-        segmentation_data (dict): A dictionary where keys are case identifiers and values are segmentation mask arrays (as NumPy arrays).
+    @param cases: A list of case identifiers. Each identifier corresponds to a
+                  key in both case_arrays and segmentation_data dictionaries.
+    @param case_arrays: A dictionary where keys are case identifiers and values
+                        are image arrays represented as NumPy arrays.
+    @param segmentation_data: A dictionary where keys are case identifiers and
+                              values are segmentation mask arrays as NumPy arrays.
 
-    Returns:
-        list of tuples: A list where each tuple contains an image slice and its corresponding segmentation mask slice, both as NumPy arrays.
+    @return: A list of tuples, where each tuple consists of an image slice and
+             its corresponding segmentation mask slice, both as NumPy arrays.
+
+    Example usage:
+    >>> paired_data = create_paired_data(case_identifiers, image_data, segmentation_masks)
     """
     paired_data = []
     for case in cases:
@@ -118,16 +189,15 @@ def create_paired_data(cases, case_arrays, segmentation_data):
 
 def save_metrics(metrics, directory, timestamp):
     """
-    Saves the provided metrics, including train and test cases, as a JSON file in the specified directory.
+    @brief Saves the provided metrics, including train and test cases, as a JSON file in the specified directory.
 
-    Args:
-        metrics (dict): A dictionary containing the metrics to save.
-                        Expected to have keys like 'losses', 'train_accuracies', 'test_accuracies',
-                        'train_cases', and 'test_cases'.
-        directory (str): Path to the directory where the JSON file will be saved.
-        timestamp (str): Timestamp to append to the filename for uniqueness.
+    @param metrics (dict): A dictionary containing the metrics to save.
+                           Expected to have keys like 'losses', 'train_accuracies', 'test_accuracies',
+                           'train_cases', and 'test_cases'.
+    @param directory (str): Path to the directory where the JSON file will be saved.
+    @param timestamp (str): Timestamp to append to the filename for uniqueness.
     """
-    metrics_filename = f"metrics_{timestamp}.json"
+    metrics_filename = f"metrics_{timestamp}_new.json"
     metrics_path = os.path.join(directory, metrics_filename)
 
     with open(metrics_path, "w") as f:
@@ -136,6 +206,25 @@ def save_metrics(metrics, directory, timestamp):
 
 
 def predict_segmentation(model, image_array, device, threshold=0.5):
+    """
+    @brief Predicts the segmentation mask for a given image using a trained model.
+
+    This function processes a single image array through the provided model to generate
+    a segmentation mask. It adapts the image array to match the input requirements of the
+    model, specifically adding necessary dimensions to mimic batch size and channel depth.
+    The model's prediction is then passed through a sigmoid activation function to convert
+    logits into probabilities. A threshold is applied to these probabilities to generate
+    a binary mask.
+
+    @param model: The trained segmentation model used for prediction.
+    @param image_array: A 2D NumPy array representing the input image.
+    @param device: The device (CPU or CUDA) on which the model and data are located.
+    @param threshold: The threshold for converting sigmoid outputs to binary values.
+                      Defaults to 0.5.
+
+    @return A 2D tensor representing the predicted binary segmentation mask,
+            moved back to the CPU.
+    """
     model.to(device)
     # Add dimensions to match the model input shape [batch_size, channels, height, width]
     image_tensor = (
@@ -151,6 +240,26 @@ def predict_segmentation(model, image_array, device, threshold=0.5):
 
 
 def generate_seg_preds(model, case_arrays, case_names, device, threshold=0.5):
+    """
+    @brief Generates segmentation predictions for a set of images using a trained model.
+
+    This function iterates over a specified list of cases, applying the trained model to
+    generate segmentation predictions for each image within these cases. The function
+    utilises the `predict_segmentation` method for each image and collects the predictions
+    in a dictionary, keyed by case names.
+
+    @param model: The trained model used for generating segmentation predictions.
+    @param case_arrays: A dictionary where keys are case identifiers and values are lists
+                        of image arrays (NumPy arrays) for each case.
+    @param case_names: A list of case identifiers for which predictions are to be generated.
+    @param device: The device (CPU or CUDA) on which the model and data are located.
+    @param threshold: The threshold used in `predict_segmentation` for binarising the
+                      model's output. Defaults to 0.5.
+
+    @return A dictionary where keys are case identifiers and values are lists of
+            predicted segmentation masks (as tensors) for each image in the case.
+    """
+
     seg_preds = {}
     model.eval()
 
@@ -167,6 +276,25 @@ def generate_seg_preds(model, case_arrays, case_names, device, threshold=0.5):
 
 
 def calculate_pred_accuracy(seg_preds, seg_true, case_names):
+    """
+    @brief Calculates binary accuracies of predicted segmentations compared to ground truth.
+
+    This function iterates through each case specified in `case_names`, comparing the
+    predicted segmentation masks (`seg_preds`) against the true masks (`seg_true`). It
+    calculates the binary accuracy for each slice within a case using the BinaryAccuracy
+    metric from torchmetrics. The accuracies for each slice in a case are compiled into a
+    list and stored in a dictionary keyed by the case names.
+
+    @param seg_preds: A dictionary containing the predicted segmentation masks. Keys are
+                      case identifiers, and values are lists of predicted masks for each
+                      image slice.
+    @param seg_true: A dictionary containing the true segmentation masks. Keys are case
+                     identifiers, and values are lists of true masks for each image slice.
+    @param case_names: A list of case identifiers for which the accuracy is to be calculated.
+
+    @return A dictionary where keys are case identifiers and values are lists of binary
+            accuracies for each image slice in the respective case.
+    """
     seg_acc = {}
 
     print(
@@ -196,6 +324,29 @@ def calculate_pred_accuracy(seg_preds, seg_true, case_names):
 
 
 def dice_coeff(seg_pred, seg_true, smooth=1, threshold=10):
+    """
+    @brief Calculates the Dice Coefficient between two binary tensors, typically used for evaluating segmentation predictions.
+
+    The Dice Coefficient (also known as Dice Similarity Coefficient) is a measure of overlap
+    between two samples. This function is commonly used in image segmentation to compare
+    the similarity between the predicted segmentation mask and the ground truth mask.
+
+    @param seg_pred: The predicted segmentation mask. Should be a binary (or softmax/sigmoid probabilities converted to binary) tensor.
+    @param seg_true: The ground truth segmentation mask. Should be a binary tensor.
+    @param smooth (float, optional): A smoothing constant added to the numerator and denominator to avoid division by zero errors. Default is 1.
+    @param threshold (float, optional): A threshold value below which the predicted mask is considered effectively empty. This helps handle cases where both the predicted mask and the ground truth mask have no positive pixels. Default is 10.
+
+    @return: The Dice Coefficient as a floating-point scalar. Higher values indicate greater similarity between the prediction and the ground truth.
+
+    Example:
+    ```
+    dice_score = dice_coeff(pred_mask, true_mask)
+    ```
+
+    @note This implementation includes a threshold to handle the special case where both the prediction
+    and the ground truth are effectively empty (e.g., no positive pixels in the mask).
+    This scenario is common in medical image segmentation where some slices may not contain the region of interest.
+    """
     pred = seg_pred.view(-1).float()
     true = seg_true.view(-1).float()
 

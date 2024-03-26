@@ -3,3 +3,5 @@ Dataset/
 *.pyc
 wandb/
 report/
+*.png
+*.psd

@@ -12,7 +12,7 @@ from utils import (
     load_image_data,
 )
 from models import SimpleUNet
-from train import train_model
+from train_func import train_model
 import random
 import datetime
 import json
@@ -118,33 +118,4 @@ metrics = {
     "bce_weight": 0.7,
 }
 
-
-def save_metrics(metrics, directory, timestamp):
-    """
-    Saves the provided metrics, including train and test cases, as a JSON file in the specified directory.
-
-    Args:
-        metrics (dict): A dictionary containing the metrics to save.
-                        Expected to have keys like 'losses', 'train_accuracies', 'test_accuracies',
-                        'train_cases', and 'test_cases'.
-        directory (str): Path to the directory where the JSON file will be saved.
-        timestamp (str): Timestamp to append to the filename for uniqueness.
-    """
-    metrics_filename = f"metrics_{timestamp}_new.json"
-    metrics_path = os.path.join(directory, metrics_filename)
-
-    with open(metrics_path, "w") as f:
-        json.dump(metrics, f, indent=4)
-    print(f"Metrics saved to {metrics_path}")
-
-
 save_metrics(metrics, saved_models_dir, timestamp)
-
-# Save the metrics to a JSON file
-metrics_filename = f"metrics_{timestamp}.json"
-metrics_path = os.path.join(saved_models_dir, metrics_filename)
-
-with open(metrics_path, "w") as f:
-    json.dump(metrics, f)
-
-print(f"Metrics saved to {metrics_path}")
