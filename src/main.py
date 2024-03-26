@@ -1,3 +1,33 @@
+"""
+@file main.py
+@brief Analysis and Plots of UNET performance. This is the main script to get all the plots in the report.
+
+Produces and saves the following plots:
+- **Loss and Accuracy Plot**:
+  - Saved as 'figures/metrics_plot.png'.
+  - Shows average loss per epoch and mean train/test accuracies over epochs.
+
+- **Histograms of Dice Scores with Two Thresholds**:
+  - Saved as 'figures/DSC_histogram.png' and 'figures/DSC_histogram_higher_thresh.png'.
+  - Displays Dice score distribution for train and test cases under two different thresholds.
+
+- **Scatter Plots of Accuracy and Dice Similarity for a Specific Case**:
+  - Saved as 'figures/accuracy_dice_scatter.png'.
+  - Shows scatter plots of accuracy and Dice similarity for a specific case like 'Case_001'.
+
+- **Visualizations of Best, Worst, and Median Segmentation Results**:
+  - Saved in 'figures/slices' folder with filenames for the case and slice quality (e.g., 'best_slices_Case_001.png').
+  - Compares predicted and ground truth segmentation masks for selected slices.
+
+- **Histogram of Balanced Accuracy Scores**:
+  - Saved as 'figures/accuracy_histogram.png'.
+  - Plots histograms of BA scores for training and testing datasets.
+
+- **Scatter Plot of Dice Similarity Coefficients for a Selected Case**:
+  - Shows Dice similarity coefficients for individual slices in a selected case.
+  - Saved as 'figures/slices/dice_scatter_Case_001.png' (example case name).
+"""
+
 # %%
 import os
 import torch
@@ -105,7 +135,7 @@ plt.tight_layout()
 # figurepath = os.path.join(fig_directory, filename)
 
 # Save the figure in a high-quality format
-plt.savefig(f"metrics_plot.png", format="png", dpi=300)
+plt.savefig(f"figures/metrics_plot.png", format="png", dpi=300)
 
 plt.show()
 # %%
@@ -140,7 +170,7 @@ fig[1].set_title(f"{case}")
 fig[1].set_xlabel("Slice")
 fig[1].set_ylabel("DSC(predicted, true)")
 
-plt.savefig("accuracy_dice_scatter.png", format="png", dpi=300)
+plt.savefig("figures/accuracy_dice_scatter.png", format="png", dpi=300)
 
 plt.show()
 
@@ -193,7 +223,7 @@ plt.show()
 # %%
 def gather_scores(seg_dice, selected_cases):
     """
-    Plots a histogram of Dice scores for the selected cases.
+    Gathers all Dice scores from the selected cases. This function is used to plot histograms.
 
     Args:
         seg_dice (dict): Dictionary containing the Dice scores, where keys are case names.
@@ -220,8 +250,7 @@ seg_dice_2 = calculate_dice_similarity(
     seg_preds, seg_arrays, case_names, pred_threshold=DSC_THRESHOLD_2
 )
 
-# %%
-# Plotting the histogram
+# %% DSC scores histogram with lower threshold
 fig, axes = plt.subplots(1, 2, figsize=(10, 5))
 
 axes[0].hist(
@@ -251,10 +280,9 @@ axes[1].grid(axis="y", alpha=1)
 axes[1].legend()
 
 plt.tight_layout()
-plt.savefig("DSC_histogram.png", format="png", dpi=300)
+plt.savefig("figures/DSC_histogram.png", format="png", dpi=300)
 plt.show()
-# %%
-# Plotting the histogram
+# %% DSC scores histogram with higher threshold
 fig, axes = plt.subplots(1, 2, figsize=(10, 5))
 
 
@@ -287,7 +315,7 @@ axes[1].hist(
 axes[1].legend()
 
 plt.tight_layout()
-plt.savefig("DSC_histogram_higher_thresh.png", format="png", dpi=300)
+plt.savefig("figures/DSC_histogram_higher_thresh.png", format="png", dpi=300)
 plt.show()
 
 
@@ -342,7 +370,7 @@ axes[1].legend()
 fig.suptitle("Histogram of BA Scores")
 
 # Save the figure
-plt.savefig("accuracy_histogram.png", format="png", dpi=300)
+plt.savefig("figures/accuracy_histogram.png", format="png", dpi=300)
 
 plt.tight_layout()
 
@@ -437,7 +465,7 @@ for case in cases_to_visualize:
             )
             plt.figure(fig.number)
             plt.show()
-            fig.savefig(f"best_slices_{case}.png", format="png", dpi=400)
+            fig.savefig(f"figures/best_slices_{case}.png", format="png", dpi=400)
 
     else:
         print(f"Case '{case}' not found in best_slices")
@@ -450,7 +478,7 @@ for case in cases_to_visualize:
         )
         plt.figure(fig.number)
         plt.show()
-        # fig.savefig(f"worst_slices_{case}.png", format="png", dpi=300)
+        fig.savefig(f"figures/slices/worst_slices_{case}.png", format="png", dpi=300)
 
 
 # %% Visualize the middle slices for selected cases
@@ -461,7 +489,7 @@ for case in cases_to_visualize:
         )
         plt.figure(fig.number)
         plt.show()
-        # fig.savefig(f"middle_slices_{case}.png", format="png", dpi=300)
+        fig.savefig(f"figures/slices/middle_slices_{case}.png", format="png", dpi=300)
 
 
 # %% visualise 1 slice

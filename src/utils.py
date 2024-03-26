@@ -19,8 +19,8 @@ def convert_dicom_to_numpy_slice_location(case_path):
     This function processes all DICOM (.dcm) files located in the specified directory,
     extracting the slice location information and using it to sort the files in the
     correct sequence. It then reads the pixel data from each file and stacks them into
-    a 3D NumPy array. The function is critical for ensuring that the slices are in the
-    proper order, which is necessary for accurate 3D representation and analysis.
+    a 3D NumPy array. The function used for ensuring that the slices are in the
+    right order. This is important for the UNET training.
 
     @param case_path The path to the directory containing the DICOM files.
                      This directory should contain all the .dcm files for a single case.
@@ -80,7 +80,7 @@ def load_image_data(image_path):
     This function processes directories within the given image path, each representing
     a distinct case. It reads DICOM (.dcm) files from these directories, ensuring that
     the slices are sorted based on their 'SliceLocation' metadata for accurate 3D
-    representation. The function employs 'convert_dicom_to_numpy_slice_location' for
+    representation. The function uses 'convert_dicom_to_numpy_slice_location' for
     converting the DICOM files of each case into a 3D NumPy array.
 
     @param image_path: The path to the directory containing subdirectories for each case.
@@ -167,6 +167,7 @@ def create_paired_data(cases, case_arrays, segmentation_data):
 
     @param cases: A list of case identifiers. Each identifier corresponds to a
                   key in both case_arrays and segmentation_data dictionaries.
+                  They are of the form ["Case_001", "Case_002", ...]
     @param case_arrays: A dictionary where keys are case identifiers and values
                         are image arrays represented as NumPy arrays.
     @param segmentation_data: A dictionary where keys are case identifiers and
@@ -176,7 +177,7 @@ def create_paired_data(cases, case_arrays, segmentation_data):
              its corresponding segmentation mask slice, both as NumPy arrays.
 
     Example usage:
-    >>> paired_data = create_paired_data(case_identifiers, image_data, segmentation_masks)
+    >>> paired_data = create_paired_data(["Case_001, Case_011"], image_arrays, segmentation_arrays)
     """
     paired_data = []
     for case in cases:
@@ -195,7 +196,7 @@ def save_metrics(metrics, directory, timestamp):
                            Expected to have keys like 'losses', 'train_accuracies', 'test_accuracies',
                            'train_cases', and 'test_cases'.
     @param directory (str): Path to the directory where the JSON file will be saved.
-    @param timestamp (str): Timestamp to append to the filename for uniqueness.
+    @param timestamp (str): Timestamp to append to the filename to ensure unique filenames.
     """
     metrics_filename = f"metrics_{timestamp}_new.json"
     metrics_path = os.path.join(directory, metrics_filename)
@@ -217,7 +218,7 @@ def predict_segmentation(model, image_array, device, threshold=0.5):
     a binary mask.
 
     @param model: The trained segmentation model used for prediction.
-    @param image_array: A 2D NumPy array representing the input image.
+    @param image_array: A 2D numpy array representing the input image.
     @param device: The device (CPU or CUDA) on which the model and data are located.
     @param threshold: The threshold for converting sigmoid outputs to binary values.
                       Defaults to 0.5.
@@ -245,7 +246,7 @@ def generate_seg_preds(model, case_arrays, case_names, device, threshold=0.5):
 
     This function iterates over a specified list of cases, applying the trained model to
     generate segmentation predictions for each image within these cases. The function
-    utilises the `predict_segmentation` method for each image and collects the predictions
+    uses the `predict_segmentation` method for each image and collects the predictions
     in a dictionary, keyed by case names.
 
     @param model: The trained model used for generating segmentation predictions.
@@ -325,23 +326,16 @@ def calculate_pred_accuracy(seg_preds, seg_true, case_names):
 
 def dice_coeff(seg_pred, seg_true, smooth=1, threshold=10):
     """
-    @brief Calculates the Dice Coefficient between two binary tensors, typically used for evaluating segmentation predictions.
+    @brief Calculates the Dice Coefficient between two segmentation masks.
 
-    The Dice Coefficient (also known as Dice Similarity Coefficient) is a measure of overlap
-    between two samples. This function is commonly used in image segmentation to compare
-    the similarity between the predicted segmentation mask and the ground truth mask.
+    The Dice Coefficient is a measure of the area of overlap between two samples.
 
     @param seg_pred: The predicted segmentation mask. Should be a binary (or softmax/sigmoid probabilities converted to binary) tensor.
     @param seg_true: The ground truth segmentation mask. Should be a binary tensor.
     @param smooth (float, optional): A smoothing constant added to the numerator and denominator to avoid division by zero errors. Default is 1.
-    @param threshold (float, optional): A threshold value below which the predicted mask is considered effectively empty. This helps handle cases where both the predicted mask and the ground truth mask have no positive pixels. Default is 10.
+    @param threshold (float, optional): A threshold value below which the predicted mask is considered effectively empty.
 
     @return: The Dice Coefficient as a floating-point scalar. Higher values indicate greater similarity between the prediction and the ground truth.
-
-    Example:
-    ```
-    dice_score = dice_coeff(pred_mask, true_mask)
-    ```
 
     @note This implementation includes a threshold to handle the special case where both the prediction
     and the ground truth are effectively empty (e.g., no positive pixels in the mask).
@@ -360,6 +354,24 @@ def dice_coeff(seg_pred, seg_true, smooth=1, threshold=10):
 
 
 def calculate_dice_similarity(seg_preds, seg_true, case_names, pred_threshold=10):
+    """
+    @brief Calculates the Dice Similarity Coefficients between dictionaries of predicted and true segmentation masks.
+
+    This function iterates through each case specified in `case_names`, comparing the predicted segmentation masks
+    (`seg_preds`) against the true masks (`seg_true`). It calculates the Dice Similarity Coefficient for each slice
+    within a case using the `dice_coeff` function. The coefficients for each slice in a case are compiled into a list
+    and stored in a dictionary keyed by the case names.
+
+    @param seg_preds: A dictionary containing the predicted segmentation masks. Keys are case identifiers, and values
+                        are lists of predicted masks for each image slice.
+    @param seg_true: A dictionary containing the true segmentation masks. Keys are case identifiers, and values are lists
+                        of true masks for each image slice.
+    @param case_names: A list of case identifiers for which the Dice Similarity Coefficients are to be calculated.
+    @param pred_threshold: A threshold pixel value below which the predicted mask is considered effectively empty. Default is 10.
+
+    @return: A dictionary where keys are case identifiers and values are lists of Dice Similarity Coefficients for each image slice in the respective case.
+
+    """
     seg_dice = {}
 
     print("Calculating Dice Similarity Coefficients for segmentation predictions...")
