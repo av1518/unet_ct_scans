@@ -1,10 +1,12 @@
-## @deidentfy.py
-#  @brief Anonymizes DICOM files by modifying patient-related tags.
-#
-#  This script iterates over specified case IDs in a given dataset directory,
-#  reads each DICOM file, and replaces patient ID and name with the case ID,
-#  and clears the patient's birth date. Patient birth time is removed if present.
-#  All changes are saved back to the file.
+"""
+@file deidentify.py
+@brief Anonymizes DICOM files by modifying patient-related tags.
+
+This script iterates over specified case IDs in a given dataset directory,
+reads each DICOM file, and replaces patient ID and name with the case ID,
+and clears the patient's birth date. Patient birth time is removed if present.
+All changes are saved back to the file.
+"""
 
 # %%
 from pydicom import dcmread

@@ -1,4 +1,3 @@
-import pydicom
 from pydicom import dcmread
 import os
 from os import listdir
