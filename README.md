@@ -26,7 +26,8 @@ pip3 install torch torchvision torchaudio --index-url https://download.pytorch.o
 ```
 
 ### Get the data:
-Fix this
+The data can be downloaded from [this GitHub repository](https://github.com/loressa/DataScience_MPhill_practicals/tree/master/). The `Dataset` folder must be placed at the root of the directory for the relative paths to work.
+
 
 ### Project Scripts Overview
 To run any particular script, from the base of the directory use e.g:
