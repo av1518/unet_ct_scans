@@ -1,7 +1,7 @@
 Dataset/
-*.pdf
 *.pyc
 wandb/
-report/
+report/*        
+!report/*.pdf  
 *.png
 *.psd
