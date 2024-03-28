@@ -137,7 +137,7 @@ plt.tight_layout()
 # Save the figure in a high-quality format
 plt.savefig(f"figures/metrics_plot.png", format="png", dpi=300)
 
-plt.show()
+# plt.show()
 # %%
 case_names = [
     d for d in os.listdir(image_path) if os.path.isdir(os.path.join(image_path, d))
@@ -172,7 +172,7 @@ fig[1].set_ylabel("DSC(predicted, true)")
 
 plt.savefig("figures/accuracy_dice_scatter.png", format="png", dpi=300)
 
-plt.show()
+# plt.show()
 
 
 # %%
@@ -211,7 +211,7 @@ plt.show()
 #     axes[2].axis("off")
 
 
-#     plt.show()
+#     #plt.show()
 
 
 # # Visualize the segmentation for case_000
@@ -281,7 +281,7 @@ axes[1].legend()
 
 plt.tight_layout()
 plt.savefig("figures/DSC_histogram.png", format="png", dpi=300)
-plt.show()
+# plt.show()
 # %% DSC scores histogram with higher threshold
 fig, axes = plt.subplots(1, 2, figsize=(10, 5))
 
@@ -316,7 +316,7 @@ axes[1].legend()
 
 plt.tight_layout()
 plt.savefig("figures/DSC_histogram_higher_thresh.png", format="png", dpi=300)
-plt.show()
+# plt.show()
 
 
 # %% Histogram of accuracy scores
@@ -386,7 +386,7 @@ ax.set_title(f"Dice Similarity Coefficients for {case}")
 ax.set_xlabel("Slice")
 ax.set_ylabel("Dice Similarity")
 fig.legend()
-plt.show()
+# plt.show()
 
 
 # %%
@@ -464,7 +464,7 @@ for case in cases_to_visualize:
                 case, slice_info, case_arrays, seg_arrays, seg_preds
             )
             plt.figure(fig.number)
-            plt.show()
+            # plt.show()
             fig.savefig(f"figures/best_slices_{case}.png", format="png", dpi=400)
 
     else:
@@ -477,7 +477,7 @@ for case in cases_to_visualize:
             case, slice_info, case_arrays, seg_arrays, seg_preds
         )
         plt.figure(fig.number)
-        plt.show()
+        # plt.show()
         fig.savefig(f"figures/slices/worst_slices_{case}.png", format="png", dpi=300)
 
 
@@ -488,7 +488,7 @@ for case in cases_to_visualize:
             case, slice_info, case_arrays, seg_arrays, seg_preds
         )
         plt.figure(fig.number)
-        plt.show()
+        # plt.show()
         fig.savefig(f"figures/slices/middle_slices_{case}.png", format="png", dpi=300)
 
 
