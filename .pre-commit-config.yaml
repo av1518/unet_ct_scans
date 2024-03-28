@@ -1,0 +1,24 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.0.1
+    hooks:
+      - id: end-of-file-fixer
+        exclude: 'test/data/' # avoid modifying test input files
+      - id: trailing-whitespace
+        exclude: 'test/data/' # avoid modifying test input files
+      - id: mixed-line-ending
+      - id: debug-statements
+  - repo: https://github.com/psf/black
+    rev: 23.11.0
+    hooks:
+      - id: black
+        language_version: python3.11
+  - repo: local
+    hooks:
+      - id: testing
+        name: testing
+        entry: python -m pytest
+        language: system
+        pass_filenames: false # This ensures pytest runs only once
+        files: ^test/ # ^ means "start with test/"
+        always_run: true # run on all files, not just those staged otherwise it will not run unless you update the test file
