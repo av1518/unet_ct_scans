@@ -2,6 +2,7 @@ Dataset/
 *.pdf
 *.pyc
 wandb/
-report/
+report/*        # Ignore everything in the report directory
+!report/*.pdf   # But do not ignore PDF files in the report directory
 *.png
 *.psd
