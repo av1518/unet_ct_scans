@@ -5,6 +5,8 @@
 ### Description
 We  train a simple UNET to perform lung segmentations in CT images. The model's performance is evaluated using standard metrics: Binary Accuracy and Dice Similarity Coefficient between the prediction and ground truth. The directory contains scripts for training, and evaluating.
 
+Full report available in `report` folder.
+
 
 
 ### Installation
@@ -67,7 +69,7 @@ This generates a Docker image called `med`. To deploy and run the package in the
 $ docker run --rm -ti medical
 ```
 
-This setup uses a virtual Ubuntu environment with Miniconda, installs the necessary packages and activates the environment. 
+This setup uses a virtual Ubuntu environment with Miniconda, installs the necessary packages and activates the environment.
 
 
 
@@ -78,20 +80,3 @@ Contributions are welcome. Please open an issue to discuss significant changes a
 
 ### License
 This project is open-sourced under the [MIT](https://choosealicense.com/licenses/mit/) License.
-
-## Autogeneration tools:
-Co-pilot was used in the following way:
-- Autocompleting documentation for functions and for scripts
-- Understand error messages with "Explain this error" button next to the error message.
-- General questions such as:
-
-How can i change a function name and have it change throughout my workspace?  
-
-Answer: In Visual Studio Code, you can use the "Rename Symbol" feature to change a function name throughout your workspace. Here are the steps:
-
-Place your cursor on the function name you want to change.
-Right-click the function name, and select "Rename Symbol" from the context menu. Alternatively, you can use the shortcut F2.
-Enter the new function name and press Enter.
-VS Code will automatically find and update all occurrences of the function name in your workspace. This includes not only the function definition, but also all places where the function is called.
-
-Please note that this feature depends on the language support provided by the installed extensions. If you're working with a language that doesn't have good support, the "Rename Symbol" feature might not work
